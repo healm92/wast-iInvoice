@@ -1073,7 +1073,8 @@
             let query = supabaseClient.schema('second_schema').from('households').select('*').eq('customer_type', 'household');
             if (village !== 'all') query = query.eq('village_no', village);
 
-            const { data: households } = await query;
+            const { data: households, error: hError } = await query;
+            if (hError) { alert('เกิดข้อผิดพลาดในการดึงข้อมูลครัวเรือน: ' + hError.message); return; }
             if (!households || households.length === 0) return alert('ไม่พบข้อมูลครัวเรือนในเงื่อนไขที่เลือก');
 
             let dateRangeStr = "";
@@ -1091,7 +1092,7 @@
                 const totalAmount = monthlyRate * totalMonths;
                 const invoiceNo = 'INV-H-' + Math.floor(100000 + Math.random() * 900000);
 
-                await supabaseClient.schema('second_schema').from('invoices_history').insert([{
+                const { error: insertError } = await supabaseClient.schema('second_schema').from('invoices_history').insert([{
                     household_id: h.id,
                     invoice_no: invoiceNo,
                     start_month: startM,
@@ -1103,6 +1104,11 @@
                     status: 'unpaid',
                     date_range_text: dateRangeStr
                 }]);
+
+                if (insertError) {
+                    alert('เกิดข้อผิดพลาดในการบันทึกใบแจ้งหนี้: ' + insertError.message);
+                    return;
+                }
                 countCreated++;
             }
 
@@ -1124,7 +1130,8 @@
 
             if (!household_id) return alert('กรุณาเลือกกิจการ');
 
-            const { data: records } = await supabaseClient.schema('second_schema').from('monthly_records').select('*').eq('household_id', household_id);
+            const { data: records, error: rError } = await supabaseClient.schema('second_schema').from('monthly_records').select('*').eq('household_id', household_id);
+            if (rError) { alert('เกิดข้อผิดพลาดในการดึงข้อมูลขยะ: ' + rError.message); return; }
 
             let totalAmount = 0;
             let targetRecords = [];
@@ -1154,10 +1161,15 @@
 
             const invoiceNo = 'INV-B-' + Math.floor(100000 + Math.random() * 900000);
 
-            await supabaseClient.schema('second_schema').from('invoices_history').insert([{
+            const { error: insertError } = await supabaseClient.schema('second_schema').from('invoices_history').insert([{
                 household_id, invoice_no: invoiceNo, start_month: startM, start_year: startY, end_month: endM, end_year: endY,
                 total_months: targetRecords.length, total_amount: totalAmount, status: 'unpaid', date_range_text: dateRangeStr
             }]);
+
+            if (insertError) {
+                alert('เกิดข้อผิดพลาดในการบันทึกใบแจ้งหนี้กิจการ: ' + insertError.message);
+                return;
+            }
 
             alert('สร้างใบแจ้งหนี้กิจการสำเร็จ!');
             loadInvoiceHistory();
