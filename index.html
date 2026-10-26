@@ -29,7 +29,7 @@
             <div class="text-center mb-6">
                 <img src="https://yoqmxcmgadawjsssbefw.supabase.co/storage/v1/object/public/logomuangkao01/logo.jpg" alt="โลโก้ อบต.เมืองเก่า" class="w-24 h-24 mx-auto mb-3 object-contain drop-shadow-md rounded-full border-2 border-[#2E5A44]">
                 <h2 class="text-2xl font-bold text-[#1B3B2B]">อบต.เมืองเก่า</h2>
-                <p class="text-sm text-stone-500">กองสาธารณสุขและสิ่งแวดล้อม - ระบบจัดเก็บค่าขยะออนไลน์</p>
+                <p class="text-sm text-stone-500">กองสาธารณสุขและสิ่งแวดล้อม - ระบบจัดเก็บค่าขยะออนไลน์ (Schema 2)</p>
             </div>
 
             <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
@@ -56,7 +56,7 @@
                 <img src="https://yoqmxcmgadawjsssbefw.supabase.co/storage/v1/object/public/logomuangkao01/logo.jpg" alt="โลโก้ อบต.เมืองเก่า" class="w-10 h-10 object-cover bg-white rounded-full p-0.5 border-2 border-emerald-400">
                 <div>
                     <span class="text-lg font-bold block leading-tight">องค์การบริหารส่วนตำบลเมืองเก่า</span>
-                    <span class="text-xs text-emerald-200">กองสาธารณสุขและสิ่งแวดล้อม อ.กบินทร์บุรี จ.ปราจีนบุรี</span>
+                    <span class="text-xs text-emerald-200">กองสาธารณสุขและสิ่งแวดล้อม (Database Schema: second_schema)</span>
                 </div>
             </div>
             <div class="flex items-center space-x-3">
@@ -405,7 +405,6 @@
                                 </select>
                             </div>
 
-                            <!-- เพิ่มช่องเลือกช่วงวันที่ (รอบบิล) -->
                             <div class="grid grid-cols-2 gap-2 bg-[#FAF8F5] p-3 rounded-lg border">
                                 <div>
                                     <label class="block text-xs font-semibold mb-1 text-[#2E5A44]">📅 จากวันที่ (รอบบิล)</label>
@@ -461,7 +460,6 @@
                                 </select>
                             </div>
 
-                            <!-- เพิ่มช่องเลือกช่วงวันที่สำหรับกิจการ -->
                             <div class="grid grid-cols-2 gap-2 bg-[#FAF8F5] p-3 rounded-lg border">
                                 <div>
                                     <label class="block text-xs font-semibold mb-1 text-blue-800">📅 จากวันที่ (รอบบิล)</label>
@@ -673,7 +671,7 @@
 
     <!-- Script จัดการระบบ -->
     <script>
-        const SUPABASE_URL = 'https://pdoojfiwedjbrjvjtqth.supabase.co';
+        const SUPABASE_URL = 'https://project/pdoojfiwedjbrjvjtqth.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable__0KAOXCyM13SpC6S9DpfOw_ZKHUF4jd';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -685,34 +683,44 @@
         let allInvoiceHistory = [];
         let rawWasteReportData = [];
 
+        // ล็อกอินผ่านตาราง officers ใน second_schema
         async function handleLogin(event) {
             event.preventDefault();
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) {
-                alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message);
-            } else {
-                checkAuth();
-            }
-        }
+            const errorEl = document.getElementById('login-error');
 
-        async function checkAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
+            try {
+                const { data, error } = await supabaseClient
+                    .schema('second_schema')
+                    .from('officers')
+                    .select('*')
+                    .eq('email', email)
+                    .eq('password', password)
+                    .single();
+
+                if (error || !data) {
+                    errorEl.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+                    errorEl.classList.remove('hidden');
+                    return;
+                }
+
+                errorEl.classList.add('hidden');
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('app-section').classList.remove('hidden');
-                document.getElementById('user-display').textContent = session.user.email;
+                document.getElementById('user-display').textContent = `ผู้ใช้งาน: ${data.name || email}`;
                 loadDashboard();
-            } else {
-                document.getElementById('login-section').classList.remove('hidden');
-                document.getElementById('app-section').classList.add('hidden');
+            } catch (err) {
+                console.error('Login error:', err);
+                errorEl.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ';
+                errorEl.classList.remove('hidden');
             }
         }
 
-        async function handleLogout() {
-            await supabaseClient.auth.signOut();
-            checkAuth();
+        function handleLogout() {
+            document.getElementById('app-section').classList.add('hidden');
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('login-form').reset();
         }
 
         function switchTab(tabName) {
@@ -751,10 +759,10 @@
 
             let error;
             if (id) {
-                const res = await supabaseClient.from('households').update({ house_number, village_no, owner_name, customer_type, bin_count, phone }).eq('id', id);
+                const res = await supabaseClient.schema('second_schema').from('households').update({ house_number, village_no, owner_name, customer_type, bin_count, phone }).eq('id', id);
                 error = res.error;
             } else {
-                const res = await supabaseClient.from('households').insert([{ house_number, village_no, owner_name, customer_type, bin_count, phone }]);
+                const res = await supabaseClient.schema('second_schema').from('households').insert([{ house_number, village_no, owner_name, customer_type, bin_count, phone }]);
                 error = res.error;
             }
 
@@ -794,7 +802,7 @@
                         const bin_count = parseInt(r["จำนวนถังขยะ"]) || 1;
                         const phone = String(r["เบอร์โทรศัพท์"] || "").trim();
                         if (house_number && village_no !== "" && owner_name) {
-                            await supabaseClient.from('households').insert([{ house_number, village_no, owner_name, customer_type, bin_count, phone }]);
+                            await supabaseClient.schema('second_schema').from('households').insert([{ house_number, village_no, owner_name, customer_type, bin_count, phone }]);
                             success++;
                         }
                     }
@@ -807,7 +815,7 @@
         }
 
         async function editHousehold(id) {
-            const { data } = await supabaseClient.from('households').select('*').eq('id', id).single();
+            const { data } = await supabaseClient.schema('second_schema').from('households').select('*').eq('id', id).single();
             if (data) {
                 document.getElementById('edit-household-id').value = data.id;
                 document.getElementById('house-number').value = data.house_number;
@@ -824,9 +832,9 @@
 
         async function deleteHousehold(id) {
             if (confirm('ยืนยันการลบข้อมูล?')) {
-                await supabaseClient.from('monthly_records').delete().eq('household_id', id);
-                await supabaseClient.from('invoices_history').delete().eq('household_id', id);
-                await supabaseClient.from('households').delete().eq('id', id);
+                await supabaseClient.schema('second_schema').from('monthly_records').delete().eq('household_id', id);
+                await supabaseClient.schema('second_schema').from('invoices_history').delete().eq('household_id', id);
+                await supabaseClient.schema('second_schema').from('households').delete().eq('id', id);
                 loadHouseholds();
             }
         }
@@ -840,7 +848,7 @@
 
         // --- ส่วนจัดการขยะกิจการ ---
         async function populateBusinessDropdown() {
-            const { data } = await supabaseClient.from('households').select('*').eq('customer_type', 'business').order('village_no');
+            const { data } = await supabaseClient.schema('second_schema').from('households').select('*').eq('customer_type', 'business').order('village_no');
             allBusinessHouseholds = data || [];
             const select = document.getElementById('invoice-business-id');
             const wasteSelect = document.getElementById('waste-household-id');
@@ -901,7 +909,7 @@
             const year_th = parseInt(document.getElementById('waste-year').value);
             const warningEl = document.getElementById('duplicate-warning');
             if (!household_id) { warningEl.classList.add('hidden'); return; }
-            const { data } = await supabaseClient.from('monthly_records').select('id').eq('household_id', household_id).eq('month', month).eq('year_th', year_th).maybeSingle();
+            const { data } = await supabaseClient.schema('second_schema').from('monthly_records').select('id').eq('household_id', household_id).eq('month', month).eq('year_th', year_th).maybeSingle();
             if (data) {
                 warningEl.textContent = `⚠️ กิจการนี้ได้บันทึกขยะเดือน ${monthNames[month]} พ.ศ. ${year_th} ไปแล้ว`;
                 warningEl.classList.remove('hidden');
@@ -916,7 +924,7 @@
             const daily_volume = parseFloat(document.getElementById('waste-volume').value) || 0;
             const calculated_fee = getFeeByLiters(daily_volume);
 
-            const { error } = await supabaseClient.from('monthly_records').upsert([{
+            const { error } = await supabaseClient.schema('second_schema').from('monthly_records').upsert([{
                 household_id, month, year_th, daily_volume, calculated_fee
             }], { onConflict: 'household_id,month,year_th' });
 
@@ -925,7 +933,7 @@
         }
 
         async function loadMonthlyWasteRecords() {
-            const { data } = await supabaseClient.from('monthly_records').select('*, households(*)').order('created_at', { ascending: false });
+            const { data } = await supabaseClient.schema('second_schema').from('monthly_records').select('*, households(*)').order('created_at', { ascending: false });
             const tbody = document.getElementById('waste-records-tbody');
             tbody.innerHTML = '';
             if (data && data.length > 0) {
@@ -947,7 +955,7 @@
         }
 
         async function deleteWasteRecord(id) {
-            if (confirm('ลบรายการนี้?')) { await supabaseClient.from('monthly_records').delete().eq('id', id); loadMonthlyWasteRecords(); }
+            if (confirm('ลบรายการนี้?')) { await supabaseClient.schema('second_schema').from('monthly_records').delete().eq('id', id); loadMonthlyWasteRecords(); }
         }
 
         function resetWasteForm() {
@@ -970,7 +978,7 @@
                 return;
             }
 
-            const { data: records, error } = await supabaseClient.from('monthly_records').select('*, households(*)');
+            const { data: records, error } = await supabaseClient.schema('second_schema').from('monthly_records').select('*, households(*)');
             if (error) { console.error(error); return; }
 
             const summaryMap = {};
@@ -1062,13 +1070,12 @@
 
             const totalMonths = (endVal - startVal) + 1;
 
-            let query = supabaseClient.from('households').select('*').eq('customer_type', 'household');
+            let query = supabaseClient.schema('second_schema').from('households').select('*').eq('customer_type', 'household');
             if (village !== 'all') query = query.eq('village_no', village);
 
             const { data: households } = await query;
             if (!households || households.length === 0) return alert('ไม่พบข้อมูลครัวเรือนในเงื่อนไขที่เลือก');
 
-            // จัดรูปแบบข้อความช่วงวันที่สำหรับแสดงบนเอกสาร
             let dateRangeStr = "";
             if (startDateInput && endDateInput) {
                 const d1 = new Date(startDateInput).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -1084,7 +1091,7 @@
                 const totalAmount = monthlyRate * totalMonths;
                 const invoiceNo = 'INV-H-' + Math.floor(100000 + Math.random() * 900000);
 
-                await supabaseClient.from('invoices_history').insert([{
+                await supabaseClient.schema('second_schema').from('invoices_history').insert([{
                     household_id: h.id,
                     invoice_no: invoiceNo,
                     start_month: startM,
@@ -1094,7 +1101,7 @@
                     total_months: totalMonths,
                     total_amount: totalAmount,
                     status: 'unpaid',
-                    date_range_text: dateRangeStr // บันทึกช่วงวันที่สำหรับออกใบแจ้งหนี้
+                    date_range_text: dateRangeStr
                 }]);
                 countCreated++;
             }
@@ -1117,7 +1124,7 @@
 
             if (!household_id) return alert('กรุณาเลือกกิจการ');
 
-            const { data: records } = await supabaseClient.from('monthly_records').select('*').eq('household_id', household_id);
+            const { data: records } = await supabaseClient.schema('second_schema').from('monthly_records').select('*').eq('household_id', household_id);
 
             let totalAmount = 0;
             let targetRecords = [];
@@ -1147,7 +1154,7 @@
 
             const invoiceNo = 'INV-B-' + Math.floor(100000 + Math.random() * 900000);
 
-            await supabaseClient.from('invoices_history').insert([{
+            await supabaseClient.schema('second_schema').from('invoices_history').insert([{
                 household_id, invoice_no: invoiceNo, start_month: startM, start_year: startY, end_month: endM, end_year: endY,
                 total_months: targetRecords.length, total_amount: totalAmount, status: 'unpaid', date_range_text: dateRangeStr
             }]);
@@ -1158,7 +1165,7 @@
         }
 
         async function loadInvoiceHistory() {
-            const { data } = await supabaseClient.from('invoices_history').select('*, households(*)').order('created_at', { ascending: false });
+            const { data } = await supabaseClient.schema('second_schema').from('invoices_history').select('*, households(*)').order('created_at', { ascending: false });
             allInvoiceHistory = data || [];
             renderInvoiceTable(allInvoiceHistory);
         }
@@ -1202,7 +1209,7 @@
         }
 
         async function printInvoice(invId) {
-            const { data: inv } = await supabaseClient.from('invoices_history').select('*, households(*)').eq('id', invId).single();
+            const { data: inv } = await supabaseClient.schema('second_schema').from('invoices_history').select('*, households(*)').eq('id', invId).single();
             if (inv) {
                 renderInvoiceView(inv);
             }
@@ -1254,7 +1261,7 @@
 
         async function cancelInvoice(id) {
             if (confirm('ยกเลิกใบแจ้งหนี้ฉบับนี้?')) {
-                await supabaseClient.from('invoices_history').update({ status: 'cancelled' }).eq('id', id);
+                await supabaseClient.schema('second_schema').from('invoices_history').update({ status: 'cancelled' }).eq('id', id);
                 loadInvoiceHistory();
                 loadDashboard();
             }
@@ -1277,7 +1284,7 @@
             const payment_method = document.getElementById('modal-payment-method').value;
             const receipt_no = document.getElementById('modal-receipt-no').value;
 
-            await supabaseClient.from('invoices_history').update({
+            await supabaseClient.schema('second_schema').from('invoices_history').update({
                 status: 'paid', paid_at: new Date().toISOString(), payment_method, receipt_no
             }).eq('id', id);
 
@@ -1288,7 +1295,7 @@
         }
 
         async function loadPaymentReport() {
-            let query = supabaseClient.from('invoices_history').select('*, households(*)').neq('status', 'cancelled').order('created_at', { ascending: false });
+            let query = supabaseClient.schema('second_schema').from('invoices_history').select('*, households(*)').neq('status', 'cancelled').order('created_at', { ascending: false });
             if (currentPaymentFilter !== 'all') query = query.eq('status', currentPaymentFilter);
             const { data } = await query;
             const tbody = document.getElementById('payment-status-tbody');
@@ -1317,9 +1324,9 @@
         function filterPayments(status) { currentPaymentFilter = status; loadPaymentReport(); }
 
         async function loadDashboard() {
-            const { count: hCount } = await supabaseClient.from('households').select('*', { count: 'exact', head: true });
-            const { count: iCount } = await supabaseClient.from('invoices_history').select('*', { count: 'exact', head: true }).eq('status', 'unpaid');
-            const { data: unpaidData } = await supabaseClient.from('invoices_history').select('total_amount').eq('status', 'unpaid');
+            const { count: hCount } = await supabaseClient.schema('second_schema').from('households').select('*', { count: 'exact', head: true });
+            const { count: iCount } = await supabaseClient.schema('second_schema').from('invoices_history').select('*', { count: 'exact', head: true }).eq('status', 'unpaid');
+            const { data: unpaidData } = await supabaseClient.schema('second_schema').from('invoices_history').select('total_amount').eq('status', 'unpaid');
             let unpaidSum = 0;
             if (unpaidData) unpaidData.forEach(u => unpaidSum += parseFloat(u.total_amount));
 
@@ -1329,7 +1336,7 @@
         }
 
         async function loadHouseholds() {
-            const { data } = await supabaseClient.from('households').select('*').order('village_no');
+            const { data } = await supabaseClient.schema('second_schema').from('households').select('*').order('village_no');
             allHouseholds = data || [];
             renderHouseholdTable(allHouseholds);
         }
@@ -1368,9 +1375,9 @@
         }
 
         async function backupAllTablesToExcel() {
-            const { data: houses } = await supabaseClient.from('households').select('*');
-            const { data: records } = await supabaseClient.from('monthly_records').select('*');
-            const { data: invoices } = await supabaseClient.from('invoices_history').select('*');
+            const { data: houses } = await supabaseClient.schema('second_schema').from('households').select('*');
+            const { data: records } = await supabaseClient.schema('second_schema').from('monthly_records').select('*');
+            const { data: invoices } = await supabaseClient.schema('second_schema').from('invoices_history').select('*');
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(houses || []), "Households");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(records || []), "Monthly_Records");
@@ -1378,8 +1385,6 @@
             XLSX.writeFile(wb, `backup_${new Date().toISOString().slice(0,10)}.xlsx`);
             alert('สำรองข้อมูลสำเร็จ');
         }
-
-        checkAuth();
     </script>
 </body>
 </html>
