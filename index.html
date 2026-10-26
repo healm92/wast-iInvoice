@@ -323,6 +323,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let allHouseholds = [];
+        let allWasteRecords = [];
 
         function switchTab(tabId) {
             const tabs = ['dashboard', 'households', 'add-household', 'monthly-waste', 'waste-report', 'payment-status', 'invoicing'];
@@ -398,10 +399,7 @@
                 allHouseholds = data || [];
                 renderHouseholdTable(allHouseholds);
                 updateDashboardStats();
-                
-                // เติมรายชื่อกิจการลงใน Dropdown หน้าบันทึกขยะอัตโนมัติ
                 populateWasteDropdown(allHouseholds);
-
             } catch (err) {
                 console.error('Error loading households:', err.message);
             }
@@ -477,7 +475,17 @@
             });
         }
 
-        // 3. บันทึกข้อมูลครัวเรือนลง second_schema.households
+        // 3. คำนวณค่าธรรมเนียมขยะกิจการตามปริมาณ (ลิตร)
+        function previewWasteFee() {
+            const volume = parseFloat(document.getElementById('waste-volume').value) || 0;
+            // ออัตราค่าธรรมเนียมต่อลิตร (สามารถปรับเปลี่ยนตัวเลขเรทราคาได้ตามข้อบัญญัติ อบต.)
+            const ratePerLiter = 2; // ตัวอย่าง: 2 บาทต่อลิตร
+            const fee = volume * ratePerLiter;
+            document.getElementById('waste-fee-preview').textContent = fee.toFixed(2) + ' บาท / เดือน';
+            return fee;
+        }
+
+        // 4. บันทึกข้อมูลครัวเรือนลง second_schema.households
         async function handleSaveHousehold(event) {
             event.preventDefault();
             const id = document.getElementById('edit-household-id').value;
@@ -515,15 +523,120 @@
             document.getElementById('phone').value = '';
         }
 
+        // 5. จัดการบันทึกปริมาณขยะประจำเดือนกิจการ
+        async function handleSaveMonthlyWaste(event) {
+            event.preventDefault();
+            const id = document.getElementById('edit-record-id').value;
+            const household_id = document.getElementById('waste-household-id').value;
+            const month = parseInt(document.getElementById('waste-month').value);
+            const year = parseInt(document.getElementById('waste-year').value);
+            const waste_volume = parseFloat(document.getElementById('waste-volume').value) || 0;
+            const fee = previewWasteFee();
+
+            const payload = { household_id, month, year, waste_volume, fee };
+
+            try {
+                let query = supabaseClient.schema('second_schema').from('monthly_records');
+                let result = id ? await query.update(payload).eq('id', id) : await query.insert([payload]);
+
+                if (result.error) throw result.error;
+                alert('บันทึกปริมาณขยะกิจการสำเร็จ');
+                resetWasteForm();
+                loadWasteRecords();
+            } catch (err) {
+                console.error('Error saving waste record:', err.message);
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+            }
+        }
+
         async function loadWasteRecords() {
-            // โหลดประวัติขยะจาก second_schema.monthly_records
+            try {
+                const { data, error } = await supabaseClient
+                    .schema('second_schema')
+                    .from('monthly_records')
+                    .select('*, households(house_number, owner_name, village_no)')
+                    .order('year', { ascending: false })
+                    .order('month', { ascending: false });
+
+                if (error) throw error;
+                allWasteRecords = data || [];
+                renderWasteTable(allWasteRecords);
+            } catch (err) {
+                console.error('Error loading waste records:', err.message);
+            }
+        }
+
+        function renderWasteTable(data) {
+            const tbody = document.getElementById('waste-records-tbody');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            if(data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-stone-500">ยังไม่มีประวัติการบันทึกขยะกิจการ</td></tr>`;
+                return;
+            }
+            const monthNames = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            data.forEach(r => {
+                const h = r.households || {};
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-stone-50 border-b border-stone-100";
+                tr.innerHTML = `
+                    <td class="p-3 font-medium">${h.house_number || '-'} (ม.${h.village_no || '-'})</td>
+                    <td class="p-3">${h.owner_name || '-'}</td>
+                    <td class="p-3">${monthNames[r.month]} ${r.year}</td>
+                    <td class="p-3">${r.waste_volume.toLocaleString()} ลิตร</td>
+                    <td class="p-3 font-semibold text-[#2E5A44]">${r.fee.toFixed(2)} บาท</td>
+                    <td class="p-3 text-center">
+                        <button onclick="editWasteRecord('${r.id}')" class="text-blue-600 hover:underline text-xs mr-2">แก้ไข</button>
+                        <button onclick="deleteWasteRecord('${r.id}')" class="text-red-600 hover:underline text-xs">ลบ</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function resetWasteForm() {
+            document.getElementById('edit-record-id').value = '';
+            document.getElementById('waste-household-id').value = '';
+            document.getElementById('search-waste-household').value = '';
+            document.getElementById('waste-volume').value = '';
+            document.getElementById('waste-fee-preview').textContent = '0.00 บาท / เดือน';
+            populateWasteDropdown(allHouseholds);
+        }
+
+        function filterWasteRecords() {
+            const keyword = document.getElementById('search-waste-input').value.toLowerCase();
+            const filtered = allWasteRecords.filter(r => {
+                const h = r.households || {};
+                return (h.house_number && h.house_number.toLowerCase().includes(keyword)) ||
+                       (h.owner_name && h.owner_name.toLowerCase().includes(keyword));
+            });
+            renderWasteTable(filtered);
+        }
+
+        function editWasteRecord(id) {
+            const r = allWasteRecords.find(item => item.id == id);
+            if(!r) return;
+            document.getElementById('edit-record-id').value = r.id;
+            document.getElementById('waste-household-id').value = r.household_id;
+            document.getElementById('waste-month').value = r.month;
+            document.getElementById('waste-year').value = r.year;
+            document.getElementById('waste-volume').value = r.waste_volume;
+            previewWasteFee();
+        }
+
+        async function deleteWasteRecord(id) {
+            if(!confirm('คุณต้องการลบประวัติการบันทึกนี้ใช่หรือไม่?')) return;
+            try {
+                const { error } = await supabaseClient.schema('second_schema').from('monthly_records').delete().eq('id', id);
+                if(error) throw error;
+                alert('ลบข้อมูลสำเร็จ');
+                loadWasteRecords();
+            } catch(err) {
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+            }
         }
 
         function checkExistingWasteRecord() {}
-        function previewWasteFee() {}
-        function handleSaveMonthlyWaste(event) { event.preventDefault(); }
-        function resetWasteForm() {}
-        function filterWasteRecords() {}
     </script>
 </body>
 </html>
