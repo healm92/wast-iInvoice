@@ -671,7 +671,7 @@
 
     <!-- Script จัดการระบบ -->
     <script>
-        const SUPABASE_URL = 'https://pdoojfiwedjbrjvjtqth.supabase.co';
+        const SUPABASE_URL = 'https://project/pdoojfiwedjbrjvjtqth.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable__0KAOXCyM13SpC6S9DpfOw_ZKHUF4jd';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -921,11 +921,11 @@
             const household_id = document.getElementById('waste-household-id').value;
             const month = parseInt(document.getElementById('waste-month').value);
             const year_th = parseInt(document.getElementById('waste-year').value);
-            const daily_volume = parseFloat(document.getElementById('waste-volume').value) || 0;
-            const calculated_fee = getFeeByLiters(daily_volume);
+            const waste_volume = parseFloat(document.getElementById('waste-volume').value) || 0;
+            const fee = getFeeByLiters(waste_volume);
 
             const { error } = await supabaseClient.schema('second_schema').from('monthly_records').upsert([{
-                household_id, month, year_th, daily_volume, calculated_fee
+                household_id, month, year_th, waste_volume, fee
             }], { onConflict: 'household_id,month,year_th' });
 
             if (error) alert('เกิดข้อผิดพลาด: ' + error.message);
@@ -944,8 +944,8 @@
                                 <td class="p-3 font-semibold">${r.households?.house_number} (ม.${r.households?.village_no})</td>
                                 <td class="p-3">${r.households?.owner_name}</td>
                                 <td class="p-3">${monthNames[r.month]} ${r.year_th}</td>
-                                <td class="p-3">${r.daily_volume} ลิตร</td>
-                                <td class="p-3 text-emerald-700 font-bold">${r.calculated_fee} ฿</td>
+                                <td class="p-3">${r.waste_volume} ลิตร</td>
+                                <td class="p-3 text-emerald-700 font-bold">${r.fee} ฿</td>
                                 <td class="p-3 text-center"><button onclick="deleteWasteRecord('${r.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">ลบ</button></td>
                             </tr>
                         `;
@@ -998,7 +998,7 @@
                                 };
                             }
                             summaryMap[hid].month_count += 1;
-                            summaryMap[hid].total_volume += parseFloat(r.daily_volume || 0);
+                            summaryMap[hid].total_volume += parseFloat(r.waste_volume || 0);
                         }
                     }
                 });
@@ -1136,7 +1136,7 @@
                     const rVal = (r.year_th * 12) + r.month;
                     if (rVal >= startVal && rVal <= endVal) {
                         targetRecords.push(r);
-                        totalAmount += parseFloat(r.calculated_fee);
+                        totalAmount += parseFloat(r.fee);
                     }
                 });
             }
