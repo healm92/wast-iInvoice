@@ -317,7 +317,7 @@
 
     <!-- ส่วน Script การทำงานเชื่อมต่อ Supabase ด้วย second_schema -->
     <script>
-        // ตั้งค่าการเชื่อมต่อ Supabase (เปลี่ยนค่า URL และ Key ของคุณที่นี่)
+        // ตั้งค่าการเชื่อมต่อ Supabase
         const SUPABASE_URL = 'https://pdoojfiwedjbrjvjtqth.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable__0KAOXCyM13SpC6S9DpfOw_ZKHUF4jd';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -342,7 +342,7 @@
             }
         }
 
-        // 1. ฟังก์ชัน Login (เชื่อมต่อ officers ใน second_schema)
+        // 1. ฟังก์ชัน Login พร้อมระบบ Debug แสดงผลใน Console (F12)
         async function handleLogin(event) {
             event.preventDefault();
             const email = document.getElementById('login-email').value;
@@ -350,6 +350,8 @@
             const errorEl = document.getElementById('login-error');
 
             try {
+                console.log("กำลังส่งข้อมูลล็อกอินไปที่ Supabase...", { email });
+
                 const { data, error } = await supabaseClient
                     .schema('second_schema')
                     .from('officers')
@@ -358,8 +360,14 @@
                     .eq('password', password)
                     .single();
 
+                console.log("ผลลัพธ์จาก Supabase:", { data, error });
+
+                if (error) {
+                    console.error("รายละเอียด Supabase Error:", error.message, error.details, error.hint);
+                }
+
                 if (error || !data) {
-                    errorEl.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+                    errorEl.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง (Error: ' + (error ? error.message : 'ไม่พบข้อมูล') + ')';
                     errorEl.classList.remove('hidden');
                     return;
                 }
@@ -372,8 +380,8 @@
                 loadHouseholds();
                 loadWasteRecords();
             } catch (err) {
-                console.error('Login error:', err);
-                errorEl.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ';
+                console.error('Catch Error:', err);
+                errorEl.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ: ' + err.message;
                 errorEl.classList.remove('hidden');
             }
         }
