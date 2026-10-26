@@ -350,8 +350,6 @@
             const errorEl = document.getElementById('login-error');
 
             try {
-                console.log("กำลังส่งข้อมูลล็อกอินไปที่ Supabase...", { email });
-
                 const { data, error } = await supabaseClient
                     .schema('second_schema')
                     .from('officers')
@@ -360,14 +358,8 @@
                     .eq('password', password)
                     .single();
 
-                console.log("ผลลัพธ์จาก Supabase:", { data, error });
-
-                if (error) {
-                    console.error("รายละเอียด Supabase Error:", error.message, error.details, error.hint);
-                }
-
                 if (error || !data) {
-                    errorEl.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง (Error: ' + (error ? error.message : 'ไม่พบข้อมูล') + ')';
+                    errorEl.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
                     errorEl.classList.remove('hidden');
                     return;
                 }
@@ -381,7 +373,7 @@
                 loadWasteRecords();
             } catch (err) {
                 console.error('Catch Error:', err);
-                errorEl.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ: ' + err.message;
+                errorEl.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อระบบ';
                 errorEl.classList.remove('hidden');
             }
         }
@@ -406,6 +398,10 @@
                 allHouseholds = data || [];
                 renderHouseholdTable(allHouseholds);
                 updateDashboardStats();
+                
+                // เติมรายชื่อกิจการลงใน Dropdown หน้าบันทึกขยะอัตโนมัติ
+                populateWasteDropdown(allHouseholds);
+
             } catch (err) {
                 console.error('Error loading households:', err.message);
             }
@@ -439,6 +435,46 @@
 
         function updateDashboardStats() {
             document.getElementById('stat-total-houses').textContent = allHouseholds.length;
+        }
+
+        // ฟังก์ชันเติมรายชื่อกิจการลงใน Dropdown
+        function populateWasteDropdown(data) {
+            const select = document.getElementById('waste-household-id');
+            if(!select) return;
+            select.innerHTML = '<option value="">-- เลือกกิจการ --</option>';
+            
+            const businesses = data.filter(h => h.customer_type === 'business');
+            if (businesses.length === 0) {
+                select.innerHTML = '<option value="">-- ไม่พบข้อมูลกิจการ (กรุณาเพิ่มลูกค้าประเภทกิจการก่อน) --</option>';
+                return;
+            }
+
+            businesses.forEach(b => {
+                const option = document.createElement('option');
+                option.value = b.id;
+                option.textContent = `บ้านเลขที่ ${b.house_number} หมู่ที่ ${b.village_no} - ${b.owner_name}`;
+                select.appendChild(option);
+            });
+        }
+
+        // ฟังก์ชันค้นหากิจการใน Dropdown
+        function filterWasteHouseholdDropdown() {
+            const keyword = document.getElementById('search-waste-household').value.toLowerCase();
+            const businesses = allHouseholds.filter(h => h.customer_type === 'business');
+            const filtered = businesses.filter(h => 
+                (h.house_number && h.house_number.toLowerCase().includes(keyword)) ||
+                (h.owner_name && h.owner_name.toLowerCase().includes(keyword)) ||
+                (h.village_no && h.village_no.toString().includes(keyword))
+            );
+
+            const select = document.getElementById('waste-household-id');
+            select.innerHTML = '<option value="">-- เลือกกิจการ --</option>';
+            filtered.forEach(b => {
+                const option = document.createElement('option');
+                option.value = b.id;
+                option.textContent = `บ้านเลขที่ ${b.house_number} หมู่ที่ ${b.village_no} - ${b.owner_name}`;
+                select.appendChild(option);
+            });
         }
 
         // 3. บันทึกข้อมูลครัวเรือนลง second_schema.households
@@ -482,6 +518,12 @@
         async function loadWasteRecords() {
             // โหลดประวัติขยะจาก second_schema.monthly_records
         }
+
+        function checkExistingWasteRecord() {}
+        function previewWasteFee() {}
+        function handleSaveMonthlyWaste(event) { event.preventDefault(); }
+        function resetWasteForm() {}
+        function filterWasteRecords() {}
     </script>
 </body>
 </html>
