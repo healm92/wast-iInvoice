@@ -1054,9 +1054,6 @@
         // --- ส่วนการออกใบแจ้งหนี้แบบกลุ่ม (Batch สำหรับครัวเรือน) ---
         async function generateBatchHouseholdInvoices() {
             const village = document.getElementById('batch-village').value;
-            const startDateInput = document.getElementById('batch-start-date').value;
-            const endDateInput = document.getElementById('batch-end-date').value;
-            
             const startM = parseInt(document.getElementById('batch-start-month').value);
             const startY = parseInt(document.getElementById('batch-start-year').value);
             const endM = parseInt(document.getElementById('batch-end-month').value);
@@ -1075,15 +1072,6 @@
             if (hError) { alert('เกิดข้อผิดพลาดในการดึงข้อมูลครัวเรือน: ' + hError.message); return; }
             if (!households || households.length === 0) return alert('ไม่พบข้อมูลครัวเรือนในเงื่อนไขที่เลือก');
 
-            let dateRangeStr = "";
-            if (startDateInput && endDateInput) {
-                const d1 = new Date(startDateInput).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-                const d2 = new Date(endDateInput).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-                dateRangeStr = `${d1} ถึง ${d2}`;
-            } else {
-                dateRangeStr = `รอบเดือน ${monthNames[startM]} ${startY} - ${monthNames[endM]} ${endY}`;
-            }
-
             let countCreated = 0;
             for (let h of households) {
                 const monthlyRate = (h.bin_count || 1) * 15;
@@ -1099,8 +1087,7 @@
                     end_year: endY,
                     total_months: totalMonths,
                     total_amount: totalAmount,
-                    status: 'unpaid',
-                    date_range_text: dateRangeStr
+                    status: 'unpaid'
                 }]);
 
                 if (insertError) {
@@ -1119,9 +1106,6 @@
         // --- ออกใบแจ้งหนี้กิจการ (รายเดี่ยว - ดึงข้อมูลขยะที่บันทึกมาออกบิล) ---
         async function generateBusinessInvoice() {
             const household_id = document.getElementById('invoice-business-id').value;
-            const startDateInput = document.getElementById('biz-date-start').value;
-            const endDateInput = document.getElementById('biz-date-end').value;
-
             const startM = parseInt(document.getElementById('biz-start-month').value);
             const startY = parseInt(document.getElementById('biz-start-year').value);
             const endM = parseInt(document.getElementById('biz-end-month').value);
@@ -1149,7 +1133,7 @@
                 }
             });
 
-            // หากไม่ตรงช่วงเวลา ให้ดึงข้อมูลขยะทั้งหมดที่มีของกิจการนี้มารวมออกบิลอัตโนมัติเพื่อความสะดวก
+            // หากไม่ตรงช่วงเวลา ให้ถามผู้ใช้เพื่อดึงประวัติขยะทั้งหมดมาออกบิล
             if (targetRecords.length === 0) {
                 if (confirm('ไม่พบข้อมูลในช่วงเดือนที่เลือก แต่พบประวัติการบันทึกขยะอื่นๆ คุณต้องการนำประวัติขยะทั้งหมดของกิจการนี้มาออกใบแจ้งหนี้รวมเลยหรือไม่?')) {
                     targetRecords = records;
@@ -1159,20 +1143,18 @@
                 }
             }
 
-            let dateRangeStr = "";
-            if (startDateInput && endDateInput) {
-                const d1 = new Date(startDateInput).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-                const d2 = new Date(endDateInput).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
-                dateRangeStr = `${d1} ถึง ${d2}`;
-            } else {
-                dateRangeStr = `รอบเดือน ${monthNames[startM]} ${startY} - ${monthNames[endM]} ${endY}`;
-            }
-
             const invoiceNo = 'INV-B-' + Math.floor(100000 + Math.random() * 900000);
 
             const { error: insertError } = await supabaseClient.schema('second_schema').from('invoices_history').insert([{
-                household_id, invoice_no: invoiceNo, start_month: startM, start_year: startY, end_month: endM, end_year: endY,
-                total_months: targetRecords.length, total_amount: totalAmount, status: 'unpaid', date_range_text: dateRangeStr
+                household_id, 
+                invoice_no: invoiceNo, 
+                start_month: startM, 
+                start_year: startY, 
+                end_month: endM, 
+                end_year: endY,
+                total_months: targetRecords.length, 
+                total_amount: totalAmount, 
+                status: 'unpaid'
             }]);
 
             if (insertError) {
@@ -1202,7 +1184,7 @@
                     let statusBadge = isCancelled ? `<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold">ยกเลิกแล้ว</span>` : (isPaid ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs font-bold">ชำระแล้ว</span>` : `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-bold">ค้างชำระ</span>`);
                     
                     const typeText = inv.households?.customer_type === 'business' ? 'กิจการ' : 'ครัวเรือน';
-                    const rangeDisplay = inv.date_range_text || `${monthNames[inv.start_month]} ${inv.start_year} - ${monthNames[inv.end_month]} ${inv.end_year}`;
+                    const rangeDisplay = `${monthNames[inv.start_month]} ${inv.start_year} - ${monthNames[inv.end_month]} ${inv.end_year}`;
                     
                     const actionBtns = isCancelled ? `-` : `
                         <button onclick="printInvoice('${inv.id}')" class="bg-blue-600 text-white px-2.5 py-1 rounded text-xs">พิมพ์ A4</button>
@@ -1240,7 +1222,7 @@
         function renderInvoiceView(inv) {
             const h = inv.households;
             const currentDateStr = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-            const rangeText = inv.date_range_text || `ช่วงเดือน ${monthNames[inv.start_month]} ${inv.start_year} - ${monthNames[inv.end_month]} ${inv.end_year}`;
+            const rangeText = `รอบเดือน ${monthNames[inv.start_month]} ${inv.start_year} - ${monthNames[inv.end_month]} ${inv.end_year}`;
             let itemsHtml = '';
 
             if (h.customer_type === 'household') {
@@ -1325,7 +1307,6 @@
 
         // --- หน้ารายงานติดตามการชำระ (แสดงเฉพาะรายการที่ยังไม่ชำระ / ค้างชำระ) ---
         async function loadPaymentReport() {
-            // ดึงเฉพาะรายการที่สถานะเป็น unpaid (ซ่อนรายการที่จ่ายแล้วตามเงื่อนไข)
             const { data, error } = await supabaseClient.schema('second_schema')
                 .from('invoices_history')
                 .select('*, households(*)')
@@ -1344,7 +1325,7 @@
                 data.forEach(inv => {
                     const statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold">ค้างชำระ (รอรับเงิน)</span>`;
                     const typeText = inv.households?.customer_type === 'business' ? 'กิจการ' : 'ครัวเรือน';
-                    const rangeDisplay = inv.date_range_text || `${monthNames[inv.start_month]} ${inv.start_year} - ${monthNames[inv.end_month]} ${inv.end_year}`;
+                    const rangeDisplay = `${monthNames[inv.start_month]} ${inv.start_year} - ${monthNames[inv.end_month]} ${inv.end_year}`;
                     
                     const actionBtn = `
                         <button onclick="openPaymentModal('${inv.id}', '${inv.invoice_no}', '${inv.households?.owner_name}', ${inv.total_amount})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">💵 รับชำระเงิน</button>
