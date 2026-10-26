@@ -906,12 +906,12 @@
         async function checkExistingWasteRecord() {
             const household_id = document.getElementById('waste-household-id').value;
             const month = parseInt(document.getElementById('waste-month').value);
-            const year_th = parseInt(document.getElementById('waste-year').value);
+            const year = parseInt(document.getElementById('waste-year').value);
             const warningEl = document.getElementById('duplicate-warning');
             if (!household_id) { warningEl.classList.add('hidden'); return; }
-            const { data } = await supabaseClient.schema('second_schema').from('monthly_records').select('id').eq('household_id', household_id).eq('month', month).eq('year_th', year_th).maybeSingle();
+            const { data } = await supabaseClient.schema('second_schema').from('monthly_records').select('id').eq('household_id', household_id).eq('month', month).eq('year', year).maybeSingle();
             if (data) {
-                warningEl.textContent = `⚠️ กิจการนี้ได้บันทึกขยะเดือน ${monthNames[month]} พ.ศ. ${year_th} ไปแล้ว`;
+                warningEl.textContent = `⚠️ กิจการนี้ได้บันทึกขยะเดือน ${monthNames[month]} พ.ศ. ${year} ไปแล้ว`;
                 warningEl.classList.remove('hidden');
             } else { warningEl.classList.add('hidden'); }
         }
@@ -920,13 +920,13 @@
             event.preventDefault();
             const household_id = document.getElementById('waste-household-id').value;
             const month = parseInt(document.getElementById('waste-month').value);
-            const year_th = parseInt(document.getElementById('waste-year').value);
+            const year = parseInt(document.getElementById('waste-year').value);
             const waste_volume = parseFloat(document.getElementById('waste-volume').value) || 0;
             const fee = getFeeByLiters(waste_volume);
 
             const { error } = await supabaseClient.schema('second_schema').from('monthly_records').upsert([{
-                household_id, month, year_th, waste_volume, fee
-            }], { onConflict: 'household_id,month,year_th' });
+                household_id, month, year, waste_volume, fee
+            }], { onConflict: 'household_id,month,year' });
 
             if (error) alert('เกิดข้อผิดพลาด: ' + error.message);
             else { alert('บันทึกขยะกิจการสำเร็จ'); resetWasteForm(); loadMonthlyWasteRecords(); }
@@ -943,7 +943,7 @@
                             <tr class="hover:bg-stone-50">
                                 <td class="p-3 font-semibold">${r.households?.house_number} (ม.${r.households?.village_no})</td>
                                 <td class="p-3">${r.households?.owner_name}</td>
-                                <td class="p-3">${monthNames[r.month]} ${r.year_th}</td>
+                                <td class="p-3">${monthNames[r.month]} ${r.year}</td>
                                 <td class="p-3">${r.waste_volume} ลิตร</td>
                                 <td class="p-3 text-emerald-700 font-bold">${r.fee} ฿</td>
                                 <td class="p-3 text-center"><button onclick="deleteWasteRecord('${r.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">ลบ</button></td>
@@ -985,7 +985,7 @@
             if (records) {
                 records.forEach(r => {
                     if (r.households && r.households.customer_type === 'business') {
-                        const rVal = (r.year_th * 12) + r.month;
+                        const rVal = (r.year * 12) + r.month;
                         if (rVal >= startVal && rVal <= endVal) {
                             const hid = r.household_id;
                             if (!summaryMap[hid]) {
@@ -1133,7 +1133,7 @@
 
             if (records) {
                 records.forEach(r => {
-                    const rVal = (r.year_th * 12) + r.month;
+                    const rVal = (r.year * 12) + r.month;
                     if (rVal >= startVal && rVal <= endVal) {
                         targetRecords.push(r);
                         totalAmount += parseFloat(r.fee);
