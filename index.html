@@ -76,7 +76,7 @@
                 <button onclick="switchTab('add-household')" id="nav-add-household" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">➕ เพิ่มข้อมูลรายเดี่ยว</button>
                 <button onclick="switchTab('monthly-waste')" id="nav-monthly-waste" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">🗑️ บันทึกขยะ (เฉพาะกิจการ)</button>
                 <button onclick="switchTab('waste-report')" id="nav-waste-report" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">📉 รายงานปริมาณขยะ</button>
-                <button onclick="switchTab('payment-status')" id="nav-payment-status" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">📈 รายงานและรับชำระเงิน</button>
+                <button onclick="switchTab('payment-status')" id="nav-payment-status" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">📈 ติดตามและรับชำระเงิน</button>
                 <button onclick="switchTab('invoicing')" id="nav-invoicing" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">📄 ออกใบแจ้งหนี้ / พิมพ์ A4</button>
             </aside>
 
@@ -177,8 +177,8 @@
                             <div>
                                 <label class="block text-sm font-medium mb-1">ประเภทลูกค้า *</label>
                                 <select id="customer-type" required class="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#2E5A44]">
-                                    <option value="household">ครัวเรือน (คิดตามถัง ถังละ 15 บาท / ไม่ต้องบันทึกรายเดือน)</option>
-                                    <option value="business">กิจการ (บันทึกขยะตามน้ำหนัก/ลิตร รายเดือน)</option>
+                                    <option value="household">ครัวเรือน (คิดตามถัง ถังละ 15 บาท / ออกใบแจ้งหนี้ได้เลย)</option>
+                                    <option value="business">กิจการ (บันทึกขยะตามน้ำหนัก/ลิตร รายเดือนก่อนออกใบแจ้งหนี้)</option>
                                 </select>
                             </div>
                             <div>
@@ -355,13 +355,12 @@
 
                 <!-- หน้ารายงานและรับชำระเงิน -->
                 <div id="tab-payment-status" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-xl font-bold text-[#1B3B2B]">รายงานการจัดเก็บเงินและติดตามการชำระ</h2>
-                        <div class="space-x-2">
-                            <button onclick="filterPayments('all')" class="px-3 py-1.5 bg-stone-200 rounded text-xs font-semibold">ทั้งหมด</button>
-                            <button onclick="filterPayments('unpaid')" class="px-3 py-1.5 bg-amber-500 text-white rounded text-xs font-semibold">ค้างชำระ</button>
-                            <button onclick="filterPayments('paid')" class="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold">ชำระแล้ว</button>
+                    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-[#EBE3D8]">
+                        <div>
+                            <h2 class="text-xl font-bold text-[#1B3B2B]">📈 ติดตามและรับชำระเงิน</h2>
+                            <p class="text-xs text-stone-500">แสดงเฉพาะรายการที่ยังค้างชำระ (รายการที่ชำระแล้วจะถูกซ่อนอัตโนมัติ)</p>
                         </div>
+                        <button onclick="loadPaymentReport()" class="bg-[#2E5A44] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#1B3B2B]">รีเฟรชข้อมูล</button>
                     </div>
 
                     <div class="bg-white rounded-xl shadow-sm border border-[#EBE3D8] overflow-hidden">
@@ -370,10 +369,10 @@
                                 <tr class="bg-[#F5F0EB] text-stone-700 border-b">
                                     <th class="p-3">เลขที่ใบแจ้งหนี้</th>
                                     <th class="p-3">ผู้รับบริการ / ประเภท</th>
-                                    <th class="p-3">ช่วงเดือนที่แจ้งหนี้</th>
+                                    <th class="p-3">ช่วงเดือนรอบบิล</th>
                                     <th class="p-3">ยอดเงินรวม</th>
                                     <th class="p-3">สถานะ</th>
-                                    <th class="p-3 text-center">จัดการ/รับเงิน</th>
+                                    <th class="p-3 text-center">จัดการ / รับชำระเงิน</th>
                                 </tr>
                             </thead>
                             <tbody id="payment-status-tbody" class="divide-y divide-stone-100"></tbody>
@@ -388,8 +387,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- ส่วนที่ 1: ออกใบแจ้งหนี้ครัวเรือนแบบกลุ่ม -->
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-[#EBE3D8] space-y-4">
-                            <h3 class="font-bold text-md text-[#2E5A44] border-b pb-2">🏠 ออกใบแจ้งหนี้ "ครัวเรือน" (รวบยอดกลุ่ม)</h3>
-                            <p class="text-xs text-stone-500">เลือกช่วงวันที่ หรือช่วงเดือน และหมู่บ้านเพื่อออกใบแจ้งหนี้พร้อมกัน</p>
+                            <h3 class="font-bold text-md text-[#2E5A44] border-b pb-2">🏠 ออกใบแจ้งหนี้ "ครัวเรือน" (ไม่ต้องบันทึกขยะ)</h3>
+                            <p class="text-xs text-stone-500">เลือกช่วงเดือนและหมู่บ้านเพื่อออกใบแจ้งหนี้ครัวเรือนพร้อมกัน</p>
                             
                             <div>
                                 <label class="block text-xs font-semibold mb-1">เลือกหมู่บ้าน</label>
@@ -449,8 +448,8 @@
 
                         <!-- ส่วนที่ 2: ออกใบแจ้งหนี้กิจการ (รายเดี่ยว) -->
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-[#EBE3D8] space-y-4">
-                            <h3 class="font-bold text-md text-[#2E5A44] border-b pb-2">🏢 ออกใบแจ้งหนี้ "กิจการ" (รายเดี่ยว)</h3>
-                            <p class="text-xs text-stone-500">เลือกกิจการและกำหนดช่วงวันที่หรือเดือนเพื่อออกใบแจ้งหนี้</p>
+                            <h3 class="font-bold text-md text-[#2E5A44] border-b pb-2">🏢 ออกใบแจ้งหนี้ "กิจการ" (จากข้อมูลที่บันทึกขยะ)</h3>
+                            <p class="text-xs text-stone-500">เลือกกิจการเพื่อนำข้อมูลขยะที่บันทึกไว้มาออกใบแจ้งหนี้</p>
                             
                             <div>
                                 <label class="block text-xs font-semibold mb-1">เลือกกิจการ</label>
@@ -498,7 +497,7 @@
                             </div>
 
                             <button onclick="generateBusinessInvoice()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm shadow">
-                                📄 สร้างใบแจ้งหนี้กิจการ
+                                📄 สร้างใบแจ้งหนี้กิจการ (ดึงจากขยะที่บันทึก)
                             </button>
                         </div>
                     </div>
@@ -677,7 +676,6 @@
 
         const monthNames = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
-        let currentPaymentFilter = 'all';
         let allHouseholds = [];
         let allBusinessHouseholds = [];
         let allInvoiceHistory = [];
@@ -1053,7 +1051,7 @@
             XLSX.writeFile(wb, `waste_volume_report_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
-        // --- ส่วนการออกใบแจ้งหนี้แบบกลุ่ม (Batch สำหรับครัวเรือน พร้อมเลือกช่วงวันที่) ---
+        // --- ส่วนการออกใบแจ้งหนี้แบบกลุ่ม (Batch สำหรับครัวเรือน) ---
         async function generateBatchHouseholdInvoices() {
             const village = document.getElementById('batch-village').value;
             const startDateInput = document.getElementById('batch-start-date').value;
@@ -1114,10 +1112,11 @@
 
             alert(`สร้างใบแจ้งหนี้สำหรับ "ครัวเรือน" สำเร็จทั้งหมด ${countCreated} ฉบับ!`);
             loadInvoiceHistory();
+            loadPaymentReport();
             loadDashboard();
         }
 
-        // --- ออกใบแจ้งหนี้กิจการ (รายเดี่ยว พร้อมเลือกช่วงวันที่) ---
+        // --- ออกใบแจ้งหนี้กิจการ (รายเดี่ยว - ดึงข้อมูลขยะที่บันทึกมาออกบิล) ---
         async function generateBusinessInvoice() {
             const household_id = document.getElementById('invoice-business-id').value;
             const startDateInput = document.getElementById('biz-date-start').value;
@@ -1130,25 +1129,35 @@
 
             if (!household_id) return alert('กรุณาเลือกกิจการ');
 
+            // ดึงข้อมูลขยะที่บันทึกไว้ทั้งหมดของกิจการนี้
             const { data: records, error: rError } = await supabaseClient.schema('second_schema').from('monthly_records').select('*').eq('household_id', household_id);
-            if (rError) { alert('เกิดข้อผิดพลาดในการดึงข้อมูลขยะ: ' + rError.message); return; }
+            if (rError || !records || records.length === 0) {
+                alert('ไม่พบข้อมูลการบันทึกขยะของกิจการนี้ กรุณาไปบันทึกปริมาณขยะในเมนูด้านซ้ายก่อนออกใบแจ้งหนี้');
+                return;
+            }
 
             let totalAmount = 0;
             let targetRecords = [];
             const startVal = (startY * 12) + startM;
             const endVal = (endY * 12) + endM;
 
-            if (records) {
-                records.forEach(r => {
-                    const rVal = (r.year * 12) + r.month;
-                    if (rVal >= startVal && rVal <= endVal) {
-                        targetRecords.push(r);
-                        totalAmount += parseFloat(r.fee);
-                    }
-                });
-            }
+            records.forEach(r => {
+                const rVal = (r.year * 12) + r.month;
+                if (rVal >= startVal && rVal <= endVal) {
+                    targetRecords.push(r);
+                    totalAmount += parseFloat(r.fee || 0);
+                }
+            });
 
-            if (targetRecords.length === 0) return alert('ไม่พบข้อมูลการบันทึกขยะของกิจการนี้ในช่วงเวลาที่เลือก');
+            // หากไม่ตรงช่วงเวลา ให้ดึงข้อมูลขยะทั้งหมดที่มีของกิจการนี้มารวมออกบิลอัตโนมัติเพื่อความสะดวก
+            if (targetRecords.length === 0) {
+                if (confirm('ไม่พบข้อมูลในช่วงเดือนที่เลือก แต่พบประวัติการบันทึกขยะอื่นๆ คุณต้องการนำประวัติขยะทั้งหมดของกิจการนี้มาออกใบแจ้งหนี้รวมเลยหรือไม่?')) {
+                    targetRecords = records;
+                    records.forEach(r => totalAmount += parseFloat(r.fee || 0));
+                } else {
+                    return;
+                }
+            }
 
             let dateRangeStr = "";
             if (startDateInput && endDateInput) {
@@ -1173,6 +1182,7 @@
 
             alert('สร้างใบแจ้งหนี้กิจการสำเร็จ!');
             loadInvoiceHistory();
+            loadPaymentReport();
             loadDashboard();
         }
 
@@ -1275,6 +1285,7 @@
             if (confirm('ยกเลิกใบแจ้งหนี้ฉบับนี้?')) {
                 await supabaseClient.schema('second_schema').from('invoices_history').update({ status: 'cancelled' }).eq('id', id);
                 loadInvoiceHistory();
+                loadPaymentReport();
                 loadDashboard();
             }
         }
@@ -1296,44 +1307,65 @@
             const payment_method = document.getElementById('modal-payment-method').value;
             const receipt_no = document.getElementById('modal-receipt-no').value;
 
-            await supabaseClient.schema('second_schema').from('invoices_history').update({
+            const { error } = await supabaseClient.schema('second_schema').from('invoices_history').update({
                 status: 'paid', paid_at: new Date().toISOString(), payment_method, receipt_no
             }).eq('id', id);
 
-            alert('บันทึกการรับชำระเงินสำเร็จ');
+            if (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+                return;
+            }
+
+            alert('บันทึกการรับชำระเงินสำเร็จ (รายการนี้จะถูกซ่อนจากรายการค้างชำระอัตโนมัติ)');
             closePaymentModal();
             loadInvoiceHistory();
+            loadPaymentReport();
             loadDashboard();
         }
 
+        // --- หน้ารายงานติดตามการชำระ (แสดงเฉพาะรายการที่ยังไม่ชำระ / ค้างชำระ) ---
         async function loadPaymentReport() {
-            let query = supabaseClient.schema('second_schema').from('invoices_history').select('*, households(*)').neq('status', 'cancelled').order('created_at', { ascending: false });
-            if (currentPaymentFilter !== 'all') query = query.eq('status', currentPaymentFilter);
-            const { data } = await query;
+            // ดึงเฉพาะรายการที่สถานะเป็น unpaid (ซ่อนรายการที่จ่ายแล้วตามเงื่อนไข)
+            const { data, error } = await supabaseClient.schema('second_schema')
+                .from('invoices_history')
+                .select('*, households(*)')
+                .eq('status', 'unpaid')
+                .order('created_at', { ascending: false });
+
             const tbody = document.getElementById('payment-status-tbody');
             tbody.innerHTML = '';
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
+                return;
+            }
+
             if (data && data.length > 0) {
                 data.forEach(inv => {
-                    const isPaid = inv.status === 'paid';
-                    let statusBadge = isPaid ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs font-bold">ชำระแล้ว</span>` : `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-bold">ค้างชำระ</span>`;
-                    const action = !isPaid ? `<button onclick="openPaymentModal('${inv.id}', '${inv.invoice_no}', '${inv.households?.owner_name}', ${inv.total_amount})" class="bg-emerald-600 text-white px-2 py-1 rounded text-xs">รับเงิน</button>` : `${new Date(inv.paid_at).toLocaleDateString('th-TH')}`;
+                    const statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold">ค้างชำระ (รอรับเงิน)</span>`;
+                    const typeText = inv.households?.customer_type === 'business' ? 'กิจการ' : 'ครัวเรือน';
                     const rangeDisplay = inv.date_range_text || `${monthNames[inv.start_month]} ${inv.start_year} - ${monthNames[inv.end_month]} ${inv.end_year}`;
+                    
+                    const actionBtn = `
+                        <button onclick="openPaymentModal('${inv.id}', '${inv.invoice_no}', '${inv.households?.owner_name}', ${inv.total_amount})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">💵 รับชำระเงิน</button>
+                        <button onclick="printInvoice('${inv.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold ml-1">🖨️ พิมพ์</button>
+                    `;
 
                     tbody.innerHTML += `
-                        <tr class="hover:bg-stone-50">
+                        <tr class="hover:bg-stone-50 border-b">
                             <td class="p-3 font-mono font-semibold">${inv.invoice_no}</td>
-                            <td class="p-3">${inv.households?.owner_name} (${inv.households?.customer_type === 'business' ? 'กิจการ' : 'ครัวเรือน'})</td>
+                            <td class="p-3">บ้านเลขที่ ${inv.households?.house_number || '-'} (${inv.households?.owner_name || '-'}) <span class="text-xs text-stone-500">[${typeText}]</span></td>
                             <td class="p-3">${rangeDisplay}</td>
                             <td class="p-3 font-bold text-emerald-700">${parseFloat(inv.total_amount).toLocaleString()} ฿</td>
                             <td class="p-3">${statusBadge}</td>
-                            <td class="p-3 text-center">${action}</td>
+                            <td class="p-3 text-center space-x-1">${actionBtn}</td>
                         </tr>
                     `;
                 });
-            } else { tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-stone-500">ไม่พบรายการ</td></tr>`; }
+            } else { 
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-stone-500">🎉 ไม่มีรายการค้างชำระในระบบ (รายการที่ชำระแล้วจะถูกซ่อนอัตโนมัติ)</td></tr>`; 
+            }
         }
-
-        function filterPayments(status) { currentPaymentFilter = status; loadPaymentReport(); }
 
         async function loadDashboard() {
             const { count: hCount } = await supabaseClient.schema('second_schema').from('households').select('*', { count: 'exact', head: true });
