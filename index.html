@@ -257,11 +257,12 @@
                             <table class="w-full text-left border-collapse text-sm">
                                 <thead>
                                     <tr class="bg-[#F5F0EB] border-b">
+                                        <th class="p-3">วันที่บันทึก</th>
                                         <th class="p-3">บ้านเลขที่ / หมู่</th>
-                                        <th class="p-3">ชื่อกิจการ</th>
+                                        <th class="p-3">ชื่อกิจการ / บุคคล</th>
                                         <th class="p-3">ประจำเดือน/ปี</th>
-                                        <th class="p-3">ปริมาณขยะ (ลิตร/ครั้ง)</th>
-                                        <th class="p-3">ค่าบริการ (บาท/ครั้ง)</th>
+                                        <th class="p-3">ปริมาณขยะ (ลิตร)</th>
+                                        <th class="p-3">ค่าบริการ (บาท)</th>
                                         <th class="p-3 text-center">จัดการ</th>
                                     </tr>
                                 </thead>
@@ -273,17 +274,57 @@
 
                 <!-- หน้ารายงานปริมาณขยะ -->
                 <div id="tab-waste-report" class="hidden space-y-6">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-[#EBE3D8]">
                         <div>
                             <h2 class="text-xl font-bold text-[#1B3B2B]">📉 รายงานสรุปปริมาณขยะกิจการ</h2>
-                            <p class="text-xs text-stone-500 mt-0.5">สรุปยอดจัดเก็บและค่าธรรมเนียมรวมตามรายการบันทึกรายครั้ง</p>
+                            <p class="text-xs text-stone-500 mt-0.5">เลือกช่วงวันที่และชื่อกิจการเพื่อออกรายงาน</p>
                         </div>
                         <button onclick="exportWasteReportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm">
                             📥 ส่งออกรายงาน Excel
                         </button>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-[#EBE3D8] p-4">
-                        <div id="waste-report-summary" class="text-stone-700 font-medium mb-4">กำลังโหลดข้อมูลสรุป...</div>
+
+                    <!-- ฟิลเตอร์กรองรายงาน -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-[#EBE3D8] grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">จากวันที่</label>
+                            <input type="date" id="report-start-date" onchange="filterWasteReport()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">ถึงวันที่</label>
+                            <input type="date" id="report-end-date" onchange="filterWasteReport()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">เลือกกิจการ / บุคคล</label>
+                            <select id="report-household-filter" onchange="filterWasteReport()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="">-- ทุกกิจการทั้งหมด --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button onclick="resetWasteReportFilter()" class="w-full bg-stone-200 hover:bg-stone-300 text-stone-700 px-4 py-2 rounded-lg text-sm font-medium">
+                                ล้างตัวกรอง
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ส่วนแสดงตารางผลลัพธ์รายงาน -->
+                    <div class="bg-white rounded-xl shadow-sm border border-[#EBE3D8] p-4 space-y-4">
+                        <div id="waste-report-summary" class="text-stone-700 font-medium">กำลังโหลดข้อมูลสรุป...</div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="bg-[#F5F0EB] border-b">
+                                        <th class="p-3">วันที่บันทึก</th>
+                                        <th class="p-3">บ้านเลขที่ / หมู่</th>
+                                        <th class="p-3">ชื่อกิจการ / บุคคล</th>
+                                        <th class="p-3">ประจำเดือน/ปี</th>
+                                        <th class="p-3">ปริมาณขยะ (ลิตร)</th>
+                                        <th class="p-3">ค่าบริการ (บาท)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="waste-report-tbody" class="divide-y divide-stone-100"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -366,7 +407,7 @@
                 activeNav.classList.remove('hover:bg-[#FAF8F5]', 'text-[#2E5A44]');
             }
             if(tabId === 'payment-status') loadPaymentStatus();
-            if(tabId === 'waste-report') loadWasteReportSummary();
+            if(tabId === 'waste-report') initWasteReportFilter();
             if(tabId === 'invoicing') populateInvoiceDropdown();
         }
 
@@ -502,7 +543,6 @@
             });
         }
 
-        // คำนวณค่าธรรมเนียมตามเรทข้อบัญญัติ (คิดเป็นรายครั้งโดยตรง ไม่คูณ 30 วัน)[cite: 10, 11]
         function previewWasteFee() {
             const vol = parseFloat(document.getElementById('waste-volume').value) || 0;
             let fee = 0;
@@ -613,8 +653,7 @@
                     .schema('second_schema')
                     .from('monthly_records')
                     .select('*, households(house_number, owner_name, village_no)')
-                    .order('year', { ascending: false })
-                    .order('month', { ascending: false });
+                    .order('created_at', { ascending: false });
 
                 if (error) throw error;
                 allWasteRecords = data || [];
@@ -630,17 +669,19 @@
             if(!tbody) return;
             tbody.innerHTML = '';
             if(data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-stone-500">ยังไม่มีประวัติการบันทึกขยะกิจการ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-stone-500">ยังไม่มีประวัติการบันทึกขยะกิจการ</td></tr>`;
                 return;
             }
             const monthNames = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
             data.forEach(r => {
                 const h = r.households || {};
+                const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-stone-50 border-b border-stone-100";
                 tr.innerHTML = `
+                    <td class="p-3">${dateStr}</td>
                     <td class="p-3 font-medium">บ้านเลขที่ ${h.house_number || '-'} (ม.${h.village_no || '-'})</td>
-                    <td class="p-3">${h.owner_name || '-'}</td>
+                    <td class="p-3 font-semibold text-[#1B3B2B]">${h.owner_name || '-'}</td>
                     <td class="p-3">${monthNames[r.month]} ${r.year}</td>
                     <td class="p-3">${r.waste_volume.toLocaleString()} ลิตร</td>
                     <td class="p-3 font-semibold text-[#2E5A44]">${r.fee.toFixed(2)} บาท</td>
@@ -680,6 +721,7 @@
             document.getElementById('waste-year').value = r.year;
             document.getElementById('waste-volume').value = r.waste_volume;
             previewWasteFee();
+            switchTab('monthly-waste');
         }
 
         async function deleteWasteRecord(id) {
@@ -691,6 +733,86 @@
             } catch(err) {
                 alert('เกิดข้อผิดพลาด: ' + err.message);
             }
+        }
+
+        // จัดการหน้าออกรายงานพร้อมฟิลเตอร์วันที่และชื่อกิจการ
+        function initWasteReportFilter() {
+            const select = document.getElementById('report-household-filter');
+            select.innerHTML = '<option value="">-- ทุกกิจการทั้งหมด --</option>';
+            const businesses = allHouseholds.filter(h => h.customer_type === 'business');
+            businesses.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = `บ้านเลขที่ ${b.house_number} (ม.${b.village_no}) - ${b.owner_name}`;
+                select.appendChild(opt);
+            });
+            filterWasteReport();
+        }
+
+        function filterWasteReport() {
+            const startDate = document.getElementById('report-start-date').value;
+            const endDate = document.getElementById('report-end-date').value;
+            const householdId = document.getElementById('report-household-filter').value;
+
+            const filtered = allWasteRecords.filter(r => {
+                if(householdId && r.household_id != householdId) return false;
+                if(startDate || endDate) {
+                    if(!r.created_at) return false;
+                    const rDate = r.created_at.substring(0, 10);
+                    if(startDate && rDate < startDate) return false;
+                    if(endDate && rDate > endDate) return false;
+                }
+                return true;
+            });
+
+            renderWasteReportTable(filtered);
+        }
+
+        function resetWasteReportFilter() {
+            document.getElementById('report-start-date').value = '';
+            document.getElementById('report-end-date').value = '';
+            document.getElementById('report-household-filter').value = '';
+            filterWasteReport();
+        }
+
+        function renderWasteReportTable(data) {
+            const tbody = document.getElementById('waste-report-tbody');
+            const summaryContainer = document.getElementById('waste-report-summary');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+
+            const totalVol = data.reduce((sum, r) => sum + (r.waste_volume || 0), 0);
+            const totalFee = data.reduce((sum, r) => sum + (r.fee || 0), 0);
+
+            summaryContainer.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="p-3 bg-[#FAF8F5] rounded-lg border">จำนวนรายการจัดเก็บ: <strong class="text-emerald-700">${data.length} ครั้ง</strong></div>
+                    <div class="p-3 bg-[#FAF8F5] rounded-lg border">ปริมาณขยะรวม: <strong class="text-[#2E5A44]">${totalVol.toLocaleString()} ลิตร</strong></div>
+                    <div class="p-3 bg-[#FAF8F5] rounded-lg border">รายได้ค่าธรรมเนียมรวม: <strong class="text-amber-600">${totalFee.toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท</strong></div>
+                </div>
+            `;
+
+            if(data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-stone-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
+                return;
+            }
+
+            const monthNames = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            data.forEach(r => {
+                const h = r.households || {};
+                const dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-stone-50 border-b border-stone-100";
+                tr.innerHTML = `
+                    <td class="p-3">${dateStr}</td>
+                    <td class="p-3">บ้านเลขที่ ${h.house_number || '-'} (ม.${h.village_no || '-'})</td>
+                    <td class="p-3 font-semibold text-[#1B3B2B]">${h.owner_name || '-'}</td>
+                    <td class="p-3">${monthNames[r.month]} ${r.year}</td>
+                    <td class="p-3">${r.waste_volume.toLocaleString()} ลิตร</td>
+                    <td class="p-3 font-semibold text-[#2E5A44]">${r.fee.toFixed(2)} บาท</td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
         async function loadPaymentStatus() {
@@ -707,7 +829,7 @@
                 data.forEach(h => {
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-stone-50 border-b";
-                    let amount = h.customer_type === 'household' ? (h.bin_count || 1) * 15 : 'คิดตามรายครั้ง';
+                    let amount = h.customer_type === 'household' ? (h.bin_count || 1) * 15 + ' บาท/เดือน' : 'คิดตามรายครั้ง';
                     tr.innerHTML = `
                         <td class="p-3 font-medium">${h.owner_name} <br><span class="text-xs text-stone-500">${h.customer_type==='household'?'ครัวเรือน':'กิจการ'}</span></td>
                         <td class="p-3">บ้านเลขที่ ${h.house_number} หมู่ที่ ${h.village_no}</td>
@@ -720,19 +842,6 @@
             } catch(e) {
                 tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
             }
-        }
-
-        function loadWasteReportSummary() {
-            const container = document.getElementById('waste-report-summary');
-            const totalVol = allWasteRecords.reduce((sum, r) => sum + (r.waste_volume || 0), 0);
-            const totalFee = allWasteRecords.reduce((sum, r) => sum + (r.fee || 0), 0);
-            container.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="p-4 bg-[#FAF8F5] rounded-lg border">จำนวนครั้งที่จัดเก็บขยะกิจการ: <strong class="text-emerald-700">${allWasteRecords.length} ครั้ง</strong></div>
-                    <div class="p-4 bg-[#FAF8F5] rounded-lg border">ปริมาณขยะรวมทั้งหมด: <strong class="text-[#2E5A44]">${totalVol.toLocaleString()} ลิตร</strong></div>
-                    <div class="p-4 bg-[#FAF8F5] rounded-lg border">รายได้ค่าธรรมเนียมรวม: <strong class="text-amber-600">${totalFee.toLocaleString('th-TH', {minimumFractionDigits: 2})} บาท</strong></div>
-                </div>
-            `;
         }
 
         function populateInvoiceDropdown() {
@@ -792,8 +901,23 @@
         }
 
         function exportWasteReportExcel() {
+            const startDate = document.getElementById('report-start-date').value;
+            const endDate = document.getElementById('report-end-date').value;
+            const householdId = document.getElementById('report-household-filter').value;
+
+            const filtered = allWasteRecords.filter(r => {
+                if(householdId && r.household_id != householdId) return false;
+                if(startDate || endDate) {
+                    if(!r.created_at) return false;
+                    const rDate = r.created_at.substring(0, 10);
+                    if(startDate && rDate < startDate) return false;
+                    if(endDate && rDate > endDate) return false;
+                }
+                return true;
+            });
+
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allWasteRecords), "WasteRecords");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filtered), "WasteReport");
             XLSX.writeFile(wb, "Waste_Records_Report.xlsx");
         }
 
