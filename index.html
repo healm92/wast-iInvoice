@@ -355,29 +355,67 @@
 
                 <!-- หน้ารายงานและรับชำระเงิน -->
                 <div id="tab-payment-status" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-xl font-bold text-[#1B3B2B]">รายงานการจัดเก็บเงินและติดตามการชำระ</h2>
-                        <div class="space-x-2">
-                            <button onclick="filterPayments('all')" class="px-3 py-1.5 bg-stone-200 rounded text-xs font-semibold">ทั้งหมด</button>
-                            <button onclick="filterPayments('unpaid')" class="px-3 py-1.5 bg-amber-500 text-white rounded text-xs font-semibold">ค้างชำระ</button>
-                            <button onclick="filterPayments('paid')" class="px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold">ชำระแล้ว</button>
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-[#1B3B2B]">📈 รายงานการจัดเก็บเงินและติดตามการชำระ</h2>
+                            <p class="text-xs text-stone-500 mt-0.5">ติดตามสถานะการออกใบแจ้งหนี้และการรับชำระเงินแบบรายเดือน</p>
                         </div>
                     </div>
 
+                    <!-- ส่วนตัวกรอง (Filters) -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-[#EBE3D8] space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-600 mb-1">📅 ประจำเดือน *</label>
+                                <select id="payment-filter-month" onchange="loadPaymentReport()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option><option value="3">มีนาคม</option>
+                                    <option value="4">เมษายน</option><option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option>
+                                    <option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option><option value="9">กันยายน</option>
+                                    <option value="10" selected>ตุลาคม</option><option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-600 mb-1">📆 ปี พ.ศ. *</label>
+                                <input type="number" id="payment-filter-year" value="2569" oninput="loadPaymentReport()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-600 mb-1">🏷️ ประเภทผู้รับบริการ</label>
+                                <select id="payment-filter-type" onchange="loadPaymentReport()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="all">-- ทั้งหมด (ครัวเรือน & กิจการ) --</option>
+                                    <option value="household">เฉพาะครัวเรือน</option>
+                                    <option value="business">เฉพาะกิจการ</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-600 mb-1">📌 สถานะการชำระ/ออกใบแจ้งหนี้</label>
+                                <select id="payment-filter-status" onchange="loadPaymentReport()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="all">-- ทุกสถานะ --</option>
+                                    <option value="uncreated">ยังไม่สร้างใบแจ้งหนี้</option>
+                                    <option value="unpaid">ค้างชำระ</option>
+                                    <option value="paid">ชำระแล้ว</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ตารางแสดงผล -->
                     <div class="bg-white rounded-xl shadow-sm border border-[#EBE3D8] overflow-hidden">
-                        <table class="w-full text-left border-collapse text-sm">
-                            <thead>
-                                <tr class="bg-[#F5F0EB] text-stone-700 border-b">
-                                    <th class="p-3">เลขที่ใบแจ้งหนี้</th>
-                                    <th class="p-3">ผู้รับบริการ / ประเภท</th>
-                                    <th class="p-3">ช่วงเดือนที่แจ้งหนี้</th>
-                                    <th class="p-3">ยอดเงินรวม</th>
-                                    <th class="p-3">สถานะ</th>
-                                    <th class="p-3 text-center">จัดการ/รับเงิน</th>
-                                </tr>
-                            </thead>
-                            <tbody id="payment-status-tbody" class="divide-y divide-stone-100"></tbody>
-                        </table>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="bg-[#F5F0EB] text-stone-700 border-b">
+                                        <th class="p-3">บ้านเลขที่ / หมู่</th>
+                                        <th class="p-3">ผู้รับบริการ</th>
+                                        <th class="p-3">ประเภท</th>
+                                        <th class="p-3">เลขที่ใบแจ้งหนี้</th>
+                                        <th class="p-3 text-right">ยอดเงินประเมิน/รวม</th>
+                                        <th class="p-3 text-center">สถานะ</th>
+                                        <th class="p-3 text-center">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payment-status-tbody" class="divide-y divide-stone-100"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -653,7 +691,6 @@
 
         const monthNames = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
-        let currentPaymentFilter = 'all';
         let allHouseholds = [];
         let allBusinessHouseholds = [];
         let allInvoiceHistory = [];
@@ -1255,33 +1292,133 @@
             loadDashboard();
         }
 
+        // --- หน้ารายงานการจัดเก็บเงินและติดตามการชำระ (อัปเดตใหม่ครบถ้วนตามต้องการ) ---
         async function loadPaymentReport() {
-            let query = supabaseClient.schema('second_schema').from('invoices_history').select('*, households(*)').neq('status', 'cancelled').order('created_at', { ascending: false });
-            if (currentPaymentFilter !== 'all') query = query.eq('status', currentPaymentFilter);
-            const { data } = await query;
+            const month = parseInt(document.getElementById('payment-filter-month').value);
+            const year_th = parseInt(document.getElementById('payment-filter-year').value);
+            const typeFilter = document.getElementById('payment-filter-type').value;
+            const statusFilter = document.getElementById('payment-filter-status').value;
             const tbody = document.getElementById('payment-status-tbody');
+
+            tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-stone-500">กำลังโหลดข้อมูล...</td></tr>`;
+
+            // 1. ดึงข้อมูลครัวเรือน/กิจการ ทั้งหมดตามประเภทที่เลือก
+            let hQuery = supabaseClient.schema('second_schema').from('households').select('*').order('village_no');
+            if (typeFilter !== 'all') {
+                hQuery = hQuery.eq('customer_type', typeFilter);
+            }
+            const { data: households } = await hQuery;
+
+            // 2. ดึงข้อมูลบันทึกขยะประจำเดือนที่เลือก (เฉพาะกิจการ)
+            const { data: wasteRecords } = await supabaseClient.schema('second_schema')
+                .from('monthly_records')
+                .select('*')
+                .eq('month', month)
+                .eq('year_th', year_th);
+
+            // 3. ดึงประวัติใบแจ้งหนี้ทั้งหมด
+            const { data: invoices } = await supabaseClient.schema('second_schema')
+                .from('invoices_history')
+                .select('*')
+                .neq('status', 'cancelled');
+
+            const wasteMap = {};
+            if (wasteRecords) {
+                wasteRecords.forEach(w => wasteMap[w.household_id] = w);
+            }
+
+            let reportRows = [];
+
+            if (households) {
+                households.forEach(h => {
+                    // ตรวจสอบว่ามีใบแจ้งหนี้ที่ครอบคลุมเดือน/ปี นี้หรือไม่
+                    const targetVal = (year_th * 12) + month;
+                    const inv = (invoices || []).find(i => {
+                        if (i.household_id !== h.id) return false;
+                        const startVal = (i.start_year * 12) + i.start_month;
+                        const endVal = (i.end_year * 12) + i.end_month;
+                        return targetVal >= startVal && targetVal <= endVal;
+                    });
+
+                    let status = 'uncreated'; 
+                    let amount = 0;
+                    let invoiceNo = '-';
+                    let invObj = null;
+
+                    if (inv) {
+                        status = inv.status; // 'unpaid' หรือ 'paid'
+                        amount = inv.total_amount;
+                        invoiceNo = inv.invoice_no;
+                        invObj = inv;
+                    } else {
+                        if (h.customer_type === 'household') {
+                            status = 'uncreated';
+                            amount = (h.bin_count || 1) * 15;
+                        } else if (h.customer_type === 'business') {
+                            const record = wasteMap[h.id];
+                            if (record) {
+                                status = 'uncreated';
+                                amount = record.calculated_fee;
+                            } else {
+                                // ถ้ากิจการยังไม่ได้บันทึกขยะในเดือนนี้ ให้ข้ามไป
+                                return;
+                            }
+                        }
+                    }
+
+                    // กรองตามสถานะที่เลือก
+                    if (statusFilter !== 'all' && status !== statusFilter) {
+                        return;
+                    }
+
+                    reportRows.push({
+                        household: h,
+                        status,
+                        amount,
+                        invoiceNo,
+                        invObj
+                    });
+                });
+            }
+
             tbody.innerHTML = '';
-            if (data && data.length > 0) {
-                data.forEach(inv => {
-                    const isPaid = inv.status === 'paid';
-                    let statusBadge = isPaid ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs font-bold">ชำระแล้ว</span>` : `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-bold">ค้างชำระ</span>`;
-                    const action = !isPaid ? `<button onclick="openPaymentModal('${inv.id}', '${inv.invoice_no}', '${inv.households?.owner_name}', ${inv.total_amount})" class="bg-emerald-600 text-white px-2 py-1 rounded text-xs">รับเงิน</button>` : `${new Date(inv.paid_at).toLocaleDateString('th-TH')}`;
+            if (reportRows.length > 0) {
+                reportRows.forEach(row => {
+                    const h = row.household;
+                    const typeBadge = h.customer_type === 'business' 
+                        ? `<span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-bold">กิจการ</span>` 
+                        : `<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold">ครัวเรือน</span>`;
+
+                    let statusBadge = '';
+                    let actionBtn = '';
+
+                    if (row.status === 'uncreated') {
+                        statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold">🟡 ยังไม่สร้างใบแจ้งหนี้</span>`;
+                        actionBtn = `<button onclick="switchTab('invoicing')" class="bg-[#2E5A44] hover:bg-[#1B3B2B] text-white px-2.5 py-1 rounded text-xs font-medium">ไปหน้าออกใบแจ้งหนี้</button>`;
+                    } else if (row.status === 'unpaid') {
+                        statusBadge = `<span class="px-2.5 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold">🟠 ค้างชำระ</span>`;
+                        actionBtn = `<button onclick="openPaymentModal('${row.invObj.id}', '${row.invObj.invoice_no}', '${h.owner_name}', ${row.invObj.total_amount})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-xs font-medium">รับเงิน</button>`;
+                    } else if (row.status === 'paid') {
+                        statusBadge = `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">🟢 ชำระแล้ว</span>`;
+                        actionBtn = `<span class="text-xs text-stone-500 font-medium">รับเงินเมื่อ ${new Date(row.invObj.paid_at).toLocaleDateString('th-TH')}</span>`;
+                    }
 
                     tbody.innerHTML += `
                         <tr class="hover:bg-stone-50">
-                            <td class="p-3 font-mono font-semibold">${inv.invoice_no}</td>
-                            <td class="p-3">${inv.households?.owner_name} (${inv.households?.customer_type === 'business' ? 'กิจการ' : 'ครัวเรือน'})</td>
-                            <td class="p-3">${monthNames[inv.start_month]} ${inv.start_year} - ${monthNames[inv.end_month]} ${inv.end_year}</td>
-                            <td class="p-3 font-bold text-emerald-700">${parseFloat(inv.total_amount).toLocaleString()} ฿</td>
-                            <td class="p-3">${statusBadge}</td>
-                            <td class="p-3 text-center">${action}</td>
+                            <td class="p-3 font-semibold">${h.house_number} (ม.${h.village_no})</td>
+                            <td class="p-3 font-medium">${h.owner_name}</td>
+                            <td class="p-3">${typeBadge}</td>
+                            <td class="p-3 font-mono font-medium text-stone-700">${row.invoiceNo}</td>
+                            <td class="p-3 text-right font-bold text-[#2E5A44]">${parseFloat(row.amount).toLocaleString()} ฿</td>
+                            <td class="p-3 text-center">${statusBadge}</td>
+                            <td class="p-3 text-center">${actionBtn}</td>
                         </tr>
                     `;
                 });
-            } else { tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-stone-500">ไม่พบรายการ</td></tr>`; }
+            } else {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-stone-500">ไม่พบรายการข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
+            }
         }
-
-        function filterPayments(status) { currentPaymentFilter = status; loadPaymentReport(); }
 
         async function loadDashboard() {
             const { count: hCount } = await supabaseClient.schema('second_schema').from('households').select('*', { count: 'exact', head: true });
