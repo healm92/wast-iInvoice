@@ -27,7 +27,7 @@
     <div id="login-section" class="no-print flex items-center justify-center min-h-screen bg-[#F5F0EB] px-4">
         <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-[#EBE3D8]">
             <div class="text-center mb-6">
-                <img src="https://yoqmxcmgadawjsssbefw.supabase.co/storage/v1/object/public/logomuangkao01/logo.jpg" alt="โลโก้ อบต.เมืองเก่า" class="w-24 h-24 mx-auto mb-3 object-contain drop-shadow-md rounded-full border-2 border-[#2E5A44]">
+                <img src="https://pdoojfiwedjbrjvjtqth.supabase.co/storage/v1/object/public/logo/logo.jpg" alt="โลโก้ อบต.เมืองเก่า" class="w-24 h-24 mx-auto mb-3 object-contain drop-shadow-md rounded-full border-2 border-[#2E5A44]">
                 <h2 class="text-2xl font-bold text-[#1B3B2B]">อบต.เมืองเก่า</h2>
                 <p class="text-sm text-stone-500">กองสาธารณสุขและสิ่งแวดล้อม - ระบบจัดเก็บค่าขยะออนไลน์</p>
             </div>
@@ -53,7 +53,7 @@
     <div id="app-section" class="hidden flex-1 flex flex-col">
         <header class="no-print bg-[#1B3B2B] text-white shadow px-6 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <img src="https://yoqmxcmgadawjsssbefw.supabase.co/storage/v1/object/public/logomuangkao01/logo.jpg" alt="โลโก้ อบต.เมืองเก่า" class="w-10 h-10 object-cover bg-white rounded-full p-0.5 border-2 border-emerald-400">
+                <img src="https://pdoojfiwedjbrjvjtqth.supabase.co/storage/v1/object/public/logo/logo.jpg" alt="โลโก้ อบต.เมืองเก่า" class="w-10 h-10 object-cover bg-white rounded-full p-0.5 border-2 border-emerald-400">
                 <div>
                     <span class="text-lg font-bold block leading-tight">องค์การบริหารส่วนตำบลเมืองเก่า</span>
                     <span class="text-xs text-emerald-200">กองสาธารณสุขและสิ่งแวดล้อม อ.กบินทร์บุรี จ.ปราจีนบุรี</span>
@@ -101,7 +101,7 @@
                     </div>
                 </div>
 
-                <!-- ทะเบียนครัวเรือน/กิจการ (เพิ่มส่วนฟิวเตอร์เลือกประเภทและหมู่) -->
+                <!-- ทะเบียนครัวเรือน/กิจการ -->
                 <div id="tab-households" class="hidden space-y-6">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
@@ -586,7 +586,7 @@
                         <div class="invoice-section pb-8 border-b-2 border-dashed border-stone-400">
                             <div class="flex justify-between items-start mb-4">
                                 <div class="flex items-center space-x-3">
-                                    <img src="https://yoqmxcmgadawjsssbefw.supabase.co/storage/v1/object/public/logomuangkao01/logo.jpg" alt="โลโก้" class="w-16 h-16 object-contain rounded-full border">
+                                    <img src="https://pdoojfiwedjbrjvjtqth.supabase.co/storage/v1/object/public/logo/logo.jpg" alt="โลโก้" class="w-16 h-16 object-contain rounded-full border">
                                     <div>
                                         <h3 class="font-bold text-lg text-[#1B3B2B]">องค์การบริหารส่วนตำบลเมืองเก่า</h3>
                                         <p class="text-xs text-stone-600">กองสาธารณสุขและสิ่งแวดล้อม อ.กบินทร์บุรี จ.ปราจีนบุรี</p>
@@ -636,7 +636,7 @@
                         <div class="invoice-section pt-4">
                             <div class="flex justify-between items-start mb-4">
                                 <div class="flex items-center space-x-3">
-                                    <img src="https://yoqmxcmgadawjsssbefw.supabase.co/storage/v1/object/public/logomuangkao01/logo.jpg" alt="โลโก้" class="w-16 h-16 object-contain rounded-full border">
+                                    <img src="https://pdoojfiwedjbrjvjtqth.supabase.co/storage/v1/object/public/logo/logo.jpg" alt="โลโก้" class="w-16 h-16 object-contain rounded-full border">
                                     <div>
                                         <h3 class="font-bold text-lg text-[#1B3B2B]">องค์การบริหารส่วนตำบลเมืองเก่า</h3>
                                         <p class="text-xs text-stone-600">กองสาธารณสุขและสิ่งแวดล้อม อ.กบินทร์บุรี จ.ปราจีนบุรี</p>
@@ -1470,7 +1470,6 @@
             filterHouseholdRegistry();
         }
 
-        // ปรับปรุงระบบแสดงผลและการกรองในทะเบียนครัวเรือน/กิจการ
         function renderHouseholdTable(data) {
             const tbody = document.getElementById('household-table-body');
             const badge = document.getElementById('household-count-badge');
@@ -1501,7 +1500,6 @@
             } else { tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-stone-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`; }
         }
 
-        // ฟังก์ชันฟิวเตอร์กรองทะเบียนครัวเรือนและกิจการ (ประเภท + หมู่บ้าน + คีย์เวิร์ด)
         function filterHouseholdRegistry() {
             const typeFilter = document.getElementById('household-filter-type')?.value || 'all';
             const villageFilter = document.getElementById('household-filter-village')?.value || 'all';
