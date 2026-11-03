@@ -146,9 +146,24 @@
                     </div>
 
                     <div class="bg-white rounded-xl shadow-sm border border-[#EBE3D8] overflow-hidden">
-                        <div class="p-3 bg-[#F5F0EB] border-b border-[#EBE3D8] flex justify-between items-center">
-                            <span class="text-xs font-bold text-[#1B3B2B]">รายการในระบบ</span>
-                            <span id="household-count-badge" class="text-xs bg-[#2E5A44] text-white px-2.5 py-1 rounded-full font-semibold">0 รายการ</span>
+                        <div class="p-3 bg-[#F5F0EB] border-b border-[#EBE3D8] flex flex-col md:flex-row justify-between items-center gap-2">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xs font-bold text-[#1B3B2B]">รายการในระบบ</span>
+                                <span id="household-count-badge" class="text-xs bg-[#2E5A44] text-white px-2.5 py-1 rounded-full font-semibold">0 รายการ</span>
+                            </div>
+                            <div class="flex items-center space-x-2 text-xs text-stone-600">
+                                <span>แสดง</span>
+                                <select id="household-rows-per-page" onchange="changeHouseholdPageSize()" class="px-2 py-1 border rounded text-xs font-semibold bg-white">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100" selected>100</option>
+                                    <option value="200">200</option>
+                                    <option value="1000">1000</option>
+                                    <option value="all">ทั้งหมด</option>
+                                </select>
+                                <span>รายการต่อหน้า</span>
+                            </div>
                         </div>
                         <table class="w-full text-left border-collapse">
                             <thead>
@@ -164,6 +179,11 @@
                             </thead>
                             <tbody id="household-table-body" class="text-sm divide-y divide-stone-100"></tbody>
                         </table>
+                        <!-- ส่วนแบ่งหน้า (Pagination Footer) -->
+                        <div id="household-pagination-container" class="p-3 bg-[#FAF8F5] border-t border-[#EBE3D8] flex flex-col md:flex-row justify-between items-center text-xs text-stone-600 gap-2">
+                            <span id="household-pagination-info">แสดง 0 ถึง 0 จาก 0 รายการ</span>
+                            <div id="household-pagination-buttons" class="flex items-center space-x-1"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -734,6 +754,11 @@
         let allInvoiceHistory = [];
         let rawWasteReportData = [];
 
+        // ตัวแปรควบคุมการแบ่งหน้า (Pagination)
+        let currentHouseholdPage = 1;
+        let householdRowsPerPage = 100;
+        let filteredHouseholdsCache = [];
+
         // ล็อกอินเช็คจากตาราง second_schema.officers
         async function handleLogin(event) {
             event.preventDefault();
@@ -901,6 +926,163 @@
             document.getElementById('form-title').textContent = 'เพิ่มข้อมูลครัวเรือน / กิจการรายเดี่ยว';
             document.getElementById('submit-btn').textContent = 'บันทึกข้อมูล';
             document.querySelector('#tab-add-household form').reset();
+        }
+
+        // --- ฟังก์ชันดึงข้อมูลทั้งหมดทะลุขีดจำกัด 1,000 แถวของ Supabase ---
+        async function fetchAllHouseholds() {
+            let allData = [];
+            let step = 1000;
+            let from = 0;
+            let to = 999;
+            let fetchMore = true;
+            
+            while (fetchMore) {
+                const { data, error } = await supabaseClient
+                    .schema('second_schema')
+                    .from('households')
+                    .select('*')
+                    .order('village_no', { ascending: true })
+                    .range(from, to);
+                    
+                if (error || !data || data.length === 0) {
+                    fetchMore = false;
+                } else {
+                    allData = allData.concat(data);
+                    if (data.length < step) {
+                        fetchMore = false;
+                    } else {
+                        from += step;
+                        to += step;
+                    }
+                }
+            }
+            return allData;
+        }
+
+        async function loadHouseholds() {
+            document.getElementById('household-count-badge').textContent = 'กำลังโหลดข้อมูลทั้งหมด...';
+            allHouseholds = await fetchAllHouseholds();
+            filterHouseholdRegistry();
+        }
+
+        function filterHouseholdRegistry() {
+            const typeFilter = document.getElementById('household-filter-type')?.value || 'all';
+            const villageFilter = document.getElementById('household-filter-village')?.value || 'all';
+            const keyword = document.getElementById('search-household-registry')?.value.toLowerCase() || '';
+
+            filteredHouseholdsCache = allHouseholds.filter(h => {
+                const matchType = (typeFilter === 'all') || (h.customer_type === typeFilter);
+                const matchVillage = (villageFilter === 'all') || (String(h.village_no) === villageFilter);
+                const matchKeyword = h.house_number?.toLowerCase().includes(keyword) || 
+                                     h.owner_name?.toLowerCase().includes(keyword) || 
+                                     h.village_no?.toString().includes(keyword);
+
+                return matchType && matchVillage && matchKeyword;
+            });
+
+            currentHouseholdPage = 1;
+            renderHouseholdTable();
+        }
+
+        function changeHouseholdPageSize() {
+            const val = document.getElementById('household-rows-per-page').value;
+            householdRowsPerPage = val === 'all' ? 'all' : parseInt(val);
+            currentHouseholdPage = 1;
+            renderHouseholdTable();
+        }
+
+        function goToHouseholdPage(page) {
+            currentHouseholdPage = page;
+            renderHouseholdTable();
+        }
+
+        function renderHouseholdTable() {
+            const tbody = document.getElementById('household-table-body');
+            const badge = document.getElementById('household-count-badge');
+            const infoEl = document.getElementById('household-pagination-info');
+            const buttonsEl = document.getElementById('household-pagination-buttons');
+
+            const totalFiltered = filteredHouseholdsCache.length;
+            badge.textContent = `${totalFiltered.toLocaleString()} รายการ (จากทั้งหมด ${allHouseholds.length.toLocaleString()})`;
+
+            if (totalFiltered === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-stone-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
+                if(infoEl) infoEl.textContent = `แสดง 0 ถึง 0 จาก 0 รายการ`;
+                if(buttonsEl) buttonsEl.innerHTML = '';
+                return;
+            }
+
+            let paginatedData = [];
+            let startIndex = 0;
+            let endIndex = totalFiltered;
+
+            if (householdRowsPerPage === 'all') {
+                paginatedData = filteredHouseholdsCache;
+            } else {
+                const totalPages = Math.ceil(totalFiltered / householdRowsPerPage);
+                if (currentHouseholdPage > totalPages) currentHouseholdPage = totalPages || 1;
+                startIndex = (currentHouseholdPage - 1) * householdRowsPerPage;
+                endIndex = Math.min(startIndex + householdRowsPerPage, totalFiltered);
+                paginatedData = filteredHouseholdsCache.slice(startIndex, endIndex);
+            }
+
+            tbody.innerHTML = '';
+            paginatedData.forEach(h => {
+                const typeBadge = h.customer_type === 'business' ? '<span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-bold">กิจการ</span>' : '<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold">ครัวเรือน</span>';
+                const binCountDisplay = `${h.bin_count || 1} ถัง`;
+                const rateDisplay = h.customer_type === 'business' ? 'ตามปริมาณขยะ (ลิตร)' : `${((h.bin_count || 1) * 15).toLocaleString()} บาท`;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-stone-50">
+                        <td class="p-3 font-semibold">${h.house_number}</td>
+                        <td class="p-3">หมู่ที่ ${h.village_no}</td>
+                        <td class="p-3 font-medium">${h.owner_name}</td>
+                        <td class="p-3">${typeBadge}</td>
+                        <td class="p-3 text-center font-semibold">${binCountDisplay}</td>
+                        <td class="p-3 text-right font-bold text-[#2E5A44]">${rateDisplay}</td>
+                        <td class="p-3 text-center space-x-1">
+                            <button onclick="editHousehold('${h.id}')" class="bg-amber-500 text-white px-2.5 py-1 rounded text-xs font-medium">แก้ไข</button>
+                            <button onclick="deleteHousehold('${h.id}')" class="bg-red-500 text-white px-2.5 py-1 rounded text-xs font-medium">ลบ</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            if (householdRowsPerPage === 'all') {
+                if(infoEl) infoEl.textContent = `แสดงทั้งหมด ${totalFiltered.toLocaleString()} รายการ`;
+                if(buttonsEl) buttonsEl.innerHTML = '';
+            } else {
+                const totalPages = Math.ceil(totalFiltered / householdRowsPerPage);
+                if(infoEl) infoEl.textContent = `แสดง ${startIndex + 1}-${endIndex} จาก ${totalFiltered.toLocaleString()} รายการ`;
+
+                let btnHtml = '';
+                btnHtml += `<button onclick="goToHouseholdPage(${currentHouseholdPage - 1})" ${currentHouseholdPage === 1 ? 'disabled class="px-2.5 py-1 border rounded bg-stone-100 text-stone-400 cursor-not-allowed"' : 'class="px-2.5 py-1 border rounded bg-white hover:bg-stone-100"'}>ก่อนหน้า</button>`;
+
+                let startPage = Math.max(1, currentHouseholdPage - 2);
+                let endPage = Math.min(totalPages, currentHouseholdPage + 2);
+
+                if (startPage > 1) {
+                    btnHtml += `<button onclick="goToHouseholdPage(1)" class="px-2.5 py-1 border rounded bg-white hover:bg-stone-100">1</button>`;
+                    if (startPage > 2) btnHtml += `<span class="px-1 text-stone-400">...</span>`;
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    if (i === currentHouseholdPage) {
+                        btnHtml += `<button class="px-2.5 py-1 border rounded bg-[#2E5A44] text-white font-bold">${i}</button>`;
+                    } else {
+                        btnHtml += `<button onclick="goToHouseholdPage(${i})" class="px-2.5 py-1 border rounded bg-white hover:bg-stone-100">${i}</button>`;
+                    }
+                }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) btnHtml += `<span class="px-1 text-stone-400">...</span>`;
+                    btnHtml += `<button onclick="goToHouseholdPage(${totalPages})" class="px-2.5 py-1 border rounded bg-white hover:bg-stone-100">${totalPages}</button>`;
+                }
+
+                btnHtml += `<button onclick="goToHouseholdPage(${currentHouseholdPage + 1})" ${currentHouseholdPage === totalPages || totalPages === 0 ? 'disabled class="px-2.5 py-1 border rounded bg-stone-100 text-stone-400 cursor-not-allowed"' : 'class="px-2.5 py-1 border rounded bg-white hover:bg-stone-100"'}>ถัดไป</button>`;
+
+                if(buttonsEl) buttonsEl.innerHTML = btnHtml;
+            }
         }
 
         // --- ส่วนจัดการขยะกิจการ ---
@@ -1464,62 +1646,8 @@
             document.getElementById('stat-unpaid-amount').textContent = unpaidSum.toLocaleString('th-TH', {minimumFractionDigits: 2}) + ' ฿';
         }
 
-        async function loadHouseholds() {
-            const { data } = await supabaseClient.schema('second_schema').from('households').select('*').order('village_no');
-            allHouseholds = data || [];
-            filterHouseholdRegistry();
-        }
-
-        function renderHouseholdTable(data) {
-            const tbody = document.getElementById('household-table-body');
-            const badge = document.getElementById('household-count-badge');
-            if (badge) badge.textContent = `${data.length} รายการ`;
-
-            tbody.innerHTML = '';
-            if (data && data.length > 0) {
-                data.forEach(h => {
-                    const typeBadge = h.customer_type === 'business' ? '<span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-bold">กิจการ</span>' : '<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold">ครัวเรือน</span>';
-                    const binCountDisplay = `${h.bin_count || 1} ถัง`;
-                    const rateDisplay = h.customer_type === 'business' ? 'ตามปริมาณขยะ (ลิตร)' : `${((h.bin_count || 1) * 15).toLocaleString()} บาท`;
-
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-stone-50">
-                            <td class="p-3 font-semibold">${h.house_number}</td>
-                            <td class="p-3">หมู่ที่ ${h.village_no}</td>
-                            <td class="p-3 font-medium">${h.owner_name}</td>
-                            <td class="p-3">${typeBadge}</td>
-                            <td class="p-3 text-center font-semibold">${binCountDisplay}</td>
-                            <td class="p-3 text-right font-bold text-[#2E5A44]">${rateDisplay}</td>
-                            <td class="p-3 text-center space-x-1">
-                                <button onclick="editHousehold('${h.id}')" class="bg-amber-500 text-white px-2.5 py-1 rounded text-xs font-medium">แก้ไข</button>
-                                <button onclick="deleteHousehold('${h.id}')" class="bg-red-500 text-white px-2.5 py-1 rounded text-xs font-medium">ลบ</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } else { tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-stone-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`; }
-        }
-
-        function filterHouseholdRegistry() {
-            const typeFilter = document.getElementById('household-filter-type')?.value || 'all';
-            const villageFilter = document.getElementById('household-filter-village')?.value || 'all';
-            const keyword = document.getElementById('search-household-registry')?.value.toLowerCase() || '';
-
-            const filtered = allHouseholds.filter(h => {
-                const matchType = (typeFilter === 'all') || (h.customer_type === typeFilter);
-                const matchVillage = (villageFilter === 'all') || (String(h.village_no) === villageFilter);
-                const matchKeyword = h.house_number?.toLowerCase().includes(keyword) || 
-                                     h.owner_name?.toLowerCase().includes(keyword) || 
-                                     h.village_no?.toString().includes(keyword);
-
-                return matchType && matchVillage && matchKeyword;
-            });
-
-            renderHouseholdTable(filtered);
-        }
-
         async function backupAllTablesToExcel() {
-            const { data: houses } = await supabaseClient.schema('second_schema').from('households').select('*');
+            const houses = await fetchAllHouseholds();
             const { data: records } = await supabaseClient.schema('second_schema').from('monthly_records').select('*');
             const { data: invoices } = await supabaseClient.schema('second_schema').from('invoices_history').select('*');
             const wb = XLSX.utils.book_new();
