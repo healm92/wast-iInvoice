@@ -87,7 +87,7 @@
                     <h2 class="text-xl font-bold text-[#1B3B2B]">แดชบอร์ดสรุปข้อมูล</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-[#EBE3D8]">
-                            <p class="text-sm text-stone-500">ครัวเรือน/กิจการทั้งหมด</p>
+                            <p class="text-sm text-stone-500">ครัวเรือน/กิจการที่ใช้งานถังขยะ</p>
                             <h3 id="stat-total-houses" class="text-3xl font-bold text-[#2E5A44] mt-2">0</h3>
                         </div>
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-[#EBE3D8]">
@@ -108,21 +108,30 @@
                             <h2 class="text-xl font-bold text-[#1B3B2B]">🏠 ทะเบียนครัวเรือนและกิจการ</h2>
                             <p class="text-xs text-stone-500 mt-0.5">จัดการข้อมูลผู้รับบริการจัดเก็บขยะในพื้นที่ อบต.เมืองเก่า</p>
                         </div>
-                        <div class="flex items-center space-x-2 w-full md:w-auto">
-                            <button onclick="exportHouseholdsExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow-sm">📥 ส่งออก Excel</button>
+                        <div class="flex items-center space-x-2 w-full md:w-auto flex-wrap gap-y-2">
+                            <button onclick="exportHouseholdsExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow-sm">📥 ส่งออก Excel (ทั้งหมด)</button>
+                            <button onclick="exportInactiveHouseholdsExcel()" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow-sm">📥 ส่งออก Excel (เฉพาะที่ยกเลิก)</button>
                             <button onclick="loadHouseholds()" class="bg-[#2E5A44] text-white px-3 py-2 rounded-lg text-sm hover:bg-[#1B3B2B] font-medium whitespace-nowrap">รีเฟรช</button>
                         </div>
                     </div>
 
                     <!-- แถบตัวกรอง (Filters) -->
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-[#EBE3D8]">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-stone-600 mb-1">🏷️ กรองประเภทผู้รับบริการ</label>
                                 <select id="household-filter-type" onchange="filterHouseholdRegistry()" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#2E5A44]">
                                     <option value="all">-- แสดงประเภททั้งหมด --</option>
                                     <option value="household">เฉพาะครัวเรือน</option>
                                     <option value="business">เฉพาะกิจการ</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-600 mb-1">⚡ กรองสถานะการใช้บริการ</label>
+                                <select id="household-filter-status" onchange="filterHouseholdRegistry()" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#2E5A44]">
+                                    <option value="active" selected>กำลังใช้บริการถังขยะ</option>
+                                    <option value="inactive">ยกเลิกการใช้ถังขยะแล้ว</option>
+                                    <option value="all">-- แสดงสถานะทั้งหมด --</option>
                                 </select>
                             </div>
                             <div>
@@ -172,6 +181,7 @@
                                     <th class="p-3">หมู่บ้าน</th>
                                     <th class="p-3">ชื่อเจ้าบ้าน / กิจการ</th>
                                     <th class="p-3">ประเภท</th>
+                                    <th class="p-3 text-center">สถานะ</th>
                                     <th class="p-3 text-center">จำนวนถังขยะ</th>
                                     <th class="p-3 text-right">อัตราค่าบริการ (บาท/เดือน)</th>
                                     <th class="p-3 text-center">จัดการ</th>
@@ -485,7 +495,7 @@
                         <!-- ส่วนที่ 1: ออกใบแจ้งหนี้ครัวเรือนแบบกลุ่ม -->
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-[#EBE3D8] space-y-4">
                             <h3 class="font-bold text-md text-[#2E5A44] border-b pb-2">🏠 ออกใบแจ้งหนี้ "ครัวเรือน" (รวบยอดกลุ่ม)</h3>
-                            <p class="text-xs text-stone-500">เลือกช่วงเดือนและหมู่บ้านเพื่อออกใบแจ้งหนี้ครัวเรือนพร้อมกันทีเดียวทั้งหมด</p>
+                            <p class="text-xs text-stone-500">เลือกช่วงเดือนและหมู่บ้านเพื่อออกใบแจ้งหนี้ครัวเรือนพร้อมกันทีเดียวทั้งหมด (เฉพาะครัวเรือนที่ยังใช้งานถังขยะอยู่)</p>
                             
                             <div>
                                 <label class="block text-xs font-semibold mb-1">เลือกหมู่บ้าน</label>
@@ -844,7 +854,7 @@
                 const res = await supabaseClient.schema('second_schema').from('households').update({ house_number, village_no, owner_name, customer_type, bin_count, phone }).eq('id', id);
                 error = res.error;
             } else {
-                const res = await supabaseClient.schema('second_schema').from('households').insert([{ house_number, village_no, owner_name, customer_type, bin_count, phone }]);
+                const res = await supabaseClient.schema('second_schema').from('households').insert([{ house_number, village_no, owner_name, customer_type, bin_count, phone, is_active: true }]);
                 error = res.error;
             }
 
@@ -884,7 +894,7 @@
                         const bin_count = parseInt(r["จำนวนถังขยะ"]) || 1;
                         const phone = String(r["เบอร์โทรศัพท์"] || "").trim();
                         if (house_number && village_no !== "" && owner_name) {
-                            await supabaseClient.schema('second_schema').from('households').insert([{ house_number, village_no, owner_name, customer_type, bin_count, phone }]);
+                            await supabaseClient.schema('second_schema').from('households').insert([{ house_number, village_no, owner_name, customer_type, bin_count, phone, is_active: true }]);
                             success++;
                         }
                     }
@@ -912,12 +922,32 @@
             }
         }
 
+        // สลับสถานะการใช้บริการถังขยะ (ยกเลิก / เปิดใช้งานใหม่)
+        async function toggleHouseholdActiveStatus(id, currentStatus) {
+            const actionText = currentStatus ? 'ยกเลิกการใช้งานถังขยะ' : 'เปิดกลับมาใช้งานถังขยะ';
+            if (confirm(`ยืนยันการ "${actionText}" สำหรับรายการนี้?`)) {
+                const { error } = await supabaseClient.schema('second_schema')
+                    .from('households')
+                    .update({ is_active: !currentStatus })
+                    .eq('id', id);
+
+                if (error) {
+                    alert('เกิดข้อผิดพลาด: ' + error.message);
+                } else {
+                    alert(`ดำเนินการ "${actionText}" เรียบร้อยแล้ว`);
+                    loadHouseholds();
+                    loadDashboard();
+                }
+            }
+        }
+
         async function deleteHousehold(id) {
-            if (confirm('ยืนยันการลบข้อมูล?')) {
+            if (confirm('ยืนยันการลบข้อมูลนี้ถาวรจากระบบ?')) {
                 await supabaseClient.schema('second_schema').from('monthly_records').delete().eq('household_id', id);
                 await supabaseClient.schema('second_schema').from('invoices_history').delete().eq('household_id', id);
                 await supabaseClient.schema('second_schema').from('households').delete().eq('id', id);
                 loadHouseholds();
+                loadDashboard();
             }
         }
 
@@ -967,17 +997,24 @@
 
         function filterHouseholdRegistry() {
             const typeFilter = document.getElementById('household-filter-type')?.value || 'all';
+            const statusFilter = document.getElementById('household-filter-status')?.value || 'active';
             const villageFilter = document.getElementById('household-filter-village')?.value || 'all';
             const keyword = document.getElementById('search-household-registry')?.value.toLowerCase() || '';
 
             filteredHouseholdsCache = allHouseholds.filter(h => {
                 const matchType = (typeFilter === 'all') || (h.customer_type === typeFilter);
+                
+                const isItemActive = h.is_active ?? true;
+                const matchStatus = (statusFilter === 'all') || 
+                                    (statusFilter === 'active' && isItemActive) || 
+                                    (statusFilter === 'inactive' && !isItemActive);
+
                 const matchVillage = (villageFilter === 'all') || (String(h.village_no) === villageFilter);
                 const matchKeyword = h.house_number?.toLowerCase().includes(keyword) || 
                                      h.owner_name?.toLowerCase().includes(keyword) || 
                                      h.village_no?.toString().includes(keyword);
 
-                return matchType && matchVillage && matchKeyword;
+                return matchType && matchStatus && matchVillage && matchKeyword;
             });
 
             currentHouseholdPage = 1;
@@ -1006,7 +1043,7 @@
             badge.textContent = `${totalFiltered.toLocaleString()} รายการ (จากทั้งหมด ${allHouseholds.length.toLocaleString()})`;
 
             if (totalFiltered === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-stone-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-stone-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
                 if(infoEl) infoEl.textContent = `แสดง 0 ถึง 0 จาก 0 รายการ`;
                 if(buttonsEl) buttonsEl.innerHTML = '';
                 return;
@@ -1028,19 +1065,31 @@
 
             tbody.innerHTML = '';
             paginatedData.forEach(h => {
+                const isActive = h.is_active ?? true;
                 const typeBadge = h.customer_type === 'business' ? '<span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-bold">กิจการ</span>' : '<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold">ครัวเรือน</span>';
+                
+                const activeStatusBadge = isActive 
+                    ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs font-bold">🟢 ใช้งาน</span>' 
+                    : '<span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded text-xs font-bold">🔴 ยกเลิกบริการ</span>';
+
                 const binCountDisplay = `${h.bin_count || 1} ถัง`;
                 const rateDisplay = h.customer_type === 'business' ? 'ตามปริมาณขยะ (ลิตร)' : `${((h.bin_count || 1) * 15).toLocaleString()} บาท`;
 
+                const toggleActiveBtn = isActive
+                    ? `<button onclick="toggleHouseholdActiveStatus('${h.id}', true)" class="bg-stone-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-stone-700" title="ยกเลิกบริการถังขยะ">🚫 ยกเลิกใช้ถัง</button>`
+                    : `<button onclick="toggleHouseholdActiveStatus('${h.id}', false)" class="bg-emerald-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-emerald-700" title="กลับมาเปิดใช้งานถังขยะ">✅ กลับมาใช้งาน</button>`;
+
                 tbody.innerHTML += `
-                    <tr class="hover:bg-stone-50">
+                    <tr class="hover:bg-stone-50 ${!isActive ? 'bg-stone-50/70 text-stone-400' : ''}">
                         <td class="p-3 font-semibold">${h.house_number}</td>
                         <td class="p-3">หมู่ที่ ${h.village_no}</td>
                         <td class="p-3 font-medium">${h.owner_name}</td>
                         <td class="p-3">${typeBadge}</td>
+                        <td class="p-3 text-center">${activeStatusBadge}</td>
                         <td class="p-3 text-center font-semibold">${binCountDisplay}</td>
-                        <td class="p-3 text-right font-bold text-[#2E5A44]">${rateDisplay}</td>
+                        <td class="p-3 text-right font-bold ${isActive ? 'text-[#2E5A44]' : 'text-stone-400'}">${rateDisplay}</td>
                         <td class="p-3 text-center space-x-1">
+                            ${toggleActiveBtn}
                             <button onclick="editHousehold('${h.id}')" class="bg-amber-500 text-white px-2.5 py-1 rounded text-xs font-medium">แก้ไข</button>
                             <button onclick="deleteHousehold('${h.id}')" class="bg-red-500 text-white px-2.5 py-1 rounded text-xs font-medium">ลบ</button>
                         </td>
@@ -1085,18 +1134,52 @@
             }
         }
 
+        // --- ส่วนการส่งออกไฟล์ Excel ---
+        function exportHouseholdsExcel() {
+            if (allHouseholds.length === 0) return alert('ไม่มีข้อมูลสำหรับส่งออก');
+            const wb = XLSX.utils.book_new();
+            const excelRows = allHouseholds.map(item => ({
+                "บ้านเลขที่": item.house_number,
+                "หมู่บ้าน": `หมู่ที่ ${item.village_no}`,
+                "ชื่อเจ้าบ้าน/กิจการ": item.owner_name,
+                "ประเภท": item.customer_type === 'business' ? 'กิจการ' : 'ครัวเรือน',
+                "จำนวนถังขยะ": item.bin_count || 1,
+                "เบอร์โทรศัพท์": item.phone || '',
+                "สถานะบริการ": (item.is_active ?? true) ? 'ใช้งาน' : 'ยกเลิกบริการ'
+            }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(excelRows), "ทะเบียนทั้งหมด");
+            XLSX.writeFile(wb, `households_all_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
+        // ส่งออกเฉพาะที่ยกเลิกถังขยะแล้ว
+        function exportInactiveHouseholdsExcel() {
+            const inactives = allHouseholds.filter(h => h.is_active === false);
+            if (inactives.length === 0) return alert('ไม่พบข้อมูลผู้ยกเลิกการใช้ถังขยะ');
+            const wb = XLSX.utils.book_new();
+            const excelRows = inactives.map(item => ({
+                "บ้านเลขที่": item.house_number,
+                "หมู่บ้าน": `หมู่ที่ ${item.village_no}`,
+                "ชื่อเจ้าบ้าน/กิจการ": item.owner_name,
+                "ประเภท": item.customer_type === 'business' ? 'กิจการ' : 'ครัวเรือน',
+                "จำนวนถังขยะ": item.bin_count || 1,
+                "เบอร์โทรศัพท์": item.phone || '',
+                "สถานะบริการ": 'ยกเลิกบริการ'
+            }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(excelRows), "ผู้ยกเลิกบริการ");
+            XLSX.writeFile(wb, `households_cancelled_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
         // --- ส่วนจัดการขยะกิจการ ---
+        // เลือกเฉพาะกิจการที่ยังเปิดใช้งานอยู่ (is_active !== false)
         async function populateBusinessDropdown() {
             const { data } = await supabaseClient.schema('second_schema').from('households').select('*').eq('customer_type', 'business').order('village_no');
-            allBusinessHouseholds = data || [];
+            allBusinessHouseholds = (data || []).filter(h => h.is_active !== false);
             const select = document.getElementById('invoice-business-id');
             const wasteSelect = document.getElementById('waste-household-id');
             let opts = '<option value="">-- เลือกกิจการ --</option>';
-            if (data) {
-                data.forEach(h => {
-                    opts += `<option value="${h.id}">บ้านเลขที่ ${h.house_number} หมู่ ${h.village_no} (${h.owner_name})</option>`;
-                });
-            }
+            allBusinessHouseholds.forEach(h => {
+                opts += `<option value="${h.id}">บ้านเลขที่ ${h.house_number} หมู่ ${h.village_no} (${h.owner_name})</option>`;
+            });
             if(select) select.innerHTML = opts;
             if(wasteSelect) wasteSelect.innerHTML = opts;
         }
@@ -1300,6 +1383,7 @@
         }
 
         // --- ส่วนการออกใบแจ้งหนี้แบบกลุ่ม (Batch สำหรับครัวเรือน) ---
+        // เลือกสร้างเฉพาะครัวเรือนที่ยังใช้งานถังขยะอยู่ (is_active !== false)
         async function generateBatchHouseholdInvoices() {
             const village = document.getElementById('batch-village').value;
             const startM = parseInt(document.getElementById('batch-start-month').value);
@@ -1313,11 +1397,11 @@
 
             const totalMonths = (endVal - startVal) + 1;
 
-            let query = supabaseClient.schema('second_schema').from('households').select('*').eq('customer_type', 'household');
+            let query = supabaseClient.schema('second_schema').from('households').select('*').eq('customer_type', 'household').or('is_active.is.null,is_active.eq.true');
             if (village !== 'all') query = query.eq('village_no', village);
 
             const { data: households } = await query;
-            if (!households || households.length === 0) return alert('ไม่พบข้อมูลครัวเรือนในเงื่อนไขที่เลือก');
+            if (!households || households.length === 0) return alert('ไม่พบข้อมูลครัวเรือนที่ใช้งานอยู่ตามเงื่อนไขที่เลือก');
 
             let countCreated = 0;
             for (let h of households) {
@@ -1339,7 +1423,7 @@
                 countCreated++;
             }
 
-            alert(`สร้างใบแจ้งหนี้สำหรับ "ครัวเรือน" สำเร็จทั้งหมด ${countCreated} ฉบับ!`);
+            alert(`สร้างใบแจ้งหนี้สำหรับ "ครัวเรือน" (ที่เปิดบริการ) สำเร็จทั้งหมด ${countCreated} ฉบับ!`);
             loadInvoiceHistory();
             loadDashboard();
         }
@@ -1513,6 +1597,7 @@
         }
 
         // --- หน้ารายงานการจัดเก็บเงินและติดตามการชำระ ---
+        // จะนำเฉพาะครัวเรือนที่เปิดบริการอยู่ (is_active !== false) มาประเมินเพื่อสร้างรายงาน
         async function loadPaymentReport() {
             const month = parseInt(document.getElementById('payment-filter-month').value);
             const year_th = parseInt(document.getElementById('payment-filter-year').value);
@@ -1522,7 +1607,7 @@
 
             tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-stone-500">กำลังโหลดข้อมูล...</td></tr>`;
 
-            let hQuery = supabaseClient.schema('second_schema').from('households').select('*').order('village_no');
+            let hQuery = supabaseClient.schema('second_schema').from('households').select('*').or('is_active.is.null,is_active.eq.true').order('village_no');
             if (typeFilter !== 'all') {
                 hQuery = hQuery.eq('customer_type', typeFilter);
             }
@@ -1635,7 +1720,7 @@
         }
 
         async function loadDashboard() {
-            const { count: hCount } = await supabaseClient.schema('second_schema').from('households').select('*', { count: 'exact', head: true });
+            const { count: hCount } = await supabaseClient.schema('second_schema').from('households').select('*', { count: 'exact', head: true }).or('is_active.is.null,is_active.eq.true');
             const { count: iCount } = await supabaseClient.schema('second_schema').from('invoices_history').select('*', { count: 'exact', head: true }).eq('status', 'unpaid');
             const { data: unpaidData } = await supabaseClient.schema('second_schema').from('invoices_history').select('total_amount').eq('status', 'unpaid');
             let unpaidSum = 0;
