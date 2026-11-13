@@ -1033,6 +1033,7 @@
             renderHouseholdTable();
         }
 
+        // ป้องกัน XSS โดยใช้ textContent สร้าง Element ในตารางครัวเรือน
         function renderHouseholdTable() {
             const tbody = document.getElementById('household-table-body');
             const badge = document.getElementById('household-count-badge');
@@ -1066,35 +1067,97 @@
             tbody.innerHTML = '';
             paginatedData.forEach(h => {
                 const isActive = h.is_active ?? true;
-                const typeBadge = h.customer_type === 'business' ? '<span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-bold">กิจการ</span>' : '<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold">ครัวเรือน</span>';
-                
-                const activeStatusBadge = isActive 
-                    ? '<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs font-bold">🟢 ใช้งาน</span>' 
-                    : '<span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded text-xs font-bold">🔴 ยกเลิกบริการ</span>';
+                const tr = document.createElement('tr');
+                tr.className = `hover:bg-stone-50 ${!isActive ? 'bg-stone-50/70 text-stone-400' : ''}`;
 
-                const binCountDisplay = `${h.bin_count || 1} ถัง`;
-                const rateDisplay = h.customer_type === 'business' ? 'ตามปริมาณขยะ (ลิตร)' : `${((h.bin_count || 1) * 15).toLocaleString()} บาท`;
+                // 1. บ้านเลขที่
+                const tdHouseNo = document.createElement('td');
+                tdHouseNo.className = 'p-3 font-semibold';
+                tdHouseNo.textContent = h.house_number;
+                tr.appendChild(tdHouseNo);
 
-                const toggleActiveBtn = isActive
-                    ? `<button onclick="toggleHouseholdActiveStatus('${h.id}', true)" class="bg-stone-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-stone-700" title="ยกเลิกบริการถังขยะ">🚫 ยกเลิกใช้ถัง</button>`
-                    : `<button onclick="toggleHouseholdActiveStatus('${h.id}', false)" class="bg-emerald-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-emerald-700" title="กลับมาเปิดใช้งานถังขยะ">✅ กลับมาใช้งาน</button>`;
+                // 2. หมู่บ้าน
+                const tdVillage = document.createElement('td');
+                tdVillage.className = 'p-3';
+                tdVillage.textContent = `หมู่ที่ ${h.village_no}`;
+                tr.appendChild(tdVillage);
 
-                tbody.innerHTML += `
-                    <tr class="hover:bg-stone-50 ${!isActive ? 'bg-stone-50/70 text-stone-400' : ''}">
-                        <td class="p-3 font-semibold">${h.house_number}</td>
-                        <td class="p-3">หมู่ที่ ${h.village_no}</td>
-                        <td class="p-3 font-medium">${h.owner_name}</td>
-                        <td class="p-3">${typeBadge}</td>
-                        <td class="p-3 text-center">${activeStatusBadge}</td>
-                        <td class="p-3 text-center font-semibold">${binCountDisplay}</td>
-                        <td class="p-3 text-right font-bold ${isActive ? 'text-[#2E5A44]' : 'text-stone-400'}">${rateDisplay}</td>
-                        <td class="p-3 text-center space-x-1">
-                            ${toggleActiveBtn}
-                            <button onclick="editHousehold('${h.id}')" class="bg-amber-500 text-white px-2.5 py-1 rounded text-xs font-medium">แก้ไข</button>
-                            <button onclick="deleteHousehold('${h.id}')" class="bg-red-500 text-white px-2.5 py-1 rounded text-xs font-medium">ลบ</button>
-                        </td>
-                    </tr>
-                `;
+                // 3. ชื่อเจ้าบ้าน / กิจการ
+                const tdOwner = document.createElement('td');
+                tdOwner.className = 'p-3 font-medium';
+                tdOwner.textContent = h.owner_name;
+                tr.appendChild(tdOwner);
+
+                // 4. ประเภท
+                const tdType = document.createElement('td');
+                tdType.className = 'p-3';
+                const typeSpan = document.createElement('span');
+                if (h.customer_type === 'business') {
+                    typeSpan.className = 'px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-bold';
+                    typeSpan.textContent = 'กิจการ';
+                } else {
+                    typeSpan.className = 'px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold';
+                    typeSpan.textContent = 'ครัวเรือน';
+                }
+                tdType.appendChild(typeSpan);
+                tr.appendChild(tdType);
+
+                // 5. สถานะ
+                const tdStatus = document.createElement('td');
+                tdStatus.className = 'p-3 text-center';
+                const statusSpan = document.createElement('span');
+                if (isActive) {
+                    statusSpan.className = 'px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs font-bold';
+                    statusSpan.textContent = '🟢 ใช้งาน';
+                } else {
+                    statusSpan.className = 'px-2 py-0.5 bg-rose-100 text-rose-800 rounded text-xs font-bold';
+                    statusSpan.textContent = '🔴 ยกเลิกบริการ';
+                }
+                tdStatus.appendChild(statusSpan);
+                tr.appendChild(tdStatus);
+
+                // 6. จำนวนถังขยะ
+                const tdBin = document.createElement('td');
+                tdBin.className = 'p-3 text-center font-semibold';
+                tdBin.textContent = `${h.bin_count || 1} ถัง`;
+                tr.appendChild(tdBin);
+
+                // 7. อัตราค่าบริการ
+                const tdRate = document.createElement('td');
+                tdRate.className = `p-3 text-right font-bold ${isActive ? 'text-[#2E5A44]' : 'text-stone-400'}`;
+                tdRate.textContent = h.customer_type === 'business' ? 'ตามปริมาณขยะ (ลิตร)' : `${((h.bin_count || 1) * 15).toLocaleString()} บาท`;
+                tr.appendChild(tdRate);
+
+                // 8. จัดการ
+                const tdAction = document.createElement('td');
+                tdAction.className = 'p-3 text-center space-x-1';
+
+                const toggleBtn = document.createElement('button');
+                if (isActive) {
+                    toggleBtn.className = 'bg-stone-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-stone-700';
+                    toggleBtn.textContent = '🚫 ยกเลิกใช้ถัง';
+                    toggleBtn.onclick = () => toggleHouseholdActiveStatus(h.id, true);
+                } else {
+                    toggleBtn.className = 'bg-emerald-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-emerald-700';
+                    toggleBtn.textContent = '✅ กลับมาใช้งาน';
+                    toggleBtn.onclick = () => toggleHouseholdActiveStatus(h.id, false);
+                }
+                tdAction.appendChild(toggleBtn);
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'bg-amber-500 text-white px-2.5 py-1 rounded text-xs font-medium';
+                editBtn.textContent = 'แก้ไข';
+                editBtn.onclick = () => editHousehold(h.id);
+                tdAction.appendChild(editBtn);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'bg-red-500 text-white px-2.5 py-1 rounded text-xs font-medium';
+                delBtn.textContent = 'ลบ';
+                delBtn.onclick = () => deleteHousehold(h.id);
+                tdAction.appendChild(delBtn);
+
+                tr.appendChild(tdAction);
+                tbody.appendChild(tr);
             });
 
             if (householdRowsPerPage === 'all') {
@@ -1170,7 +1233,6 @@
         }
 
         // --- ส่วนจัดการขยะกิจการ ---
-        // เลือกเฉพาะกิจการที่ยังเปิดใช้งานอยู่ (is_active !== false)
         async function populateBusinessDropdown() {
             const { data } = await supabaseClient.schema('second_schema').from('households').select('*').eq('customer_type', 'business').order('village_no');
             allBusinessHouseholds = (data || []).filter(h => h.is_active !== false);
@@ -1254,25 +1316,59 @@
             else { alert('บันทึกขยะกิจการสำเร็จ'); resetWasteForm(); loadMonthlyWasteRecords(); }
         }
 
+        // ป้องกัน XSS ในตารางบันทึกขยะกิจการ
         async function loadMonthlyWasteRecords() {
             const { data } = await supabaseClient.schema('second_schema').from('monthly_records').select('*, households(*)').order('created_at', { ascending: false });
             const tbody = document.getElementById('waste-records-tbody');
             tbody.innerHTML = '';
             if (data && data.length > 0) {
+                let hasData = false;
                 data.forEach(r => {
                     if (r.households?.customer_type === 'business') {
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-stone-50">
-                                <td class="p-3 font-semibold">${r.households?.house_number} (ม.${r.households?.village_no})</td>
-                                <td class="p-3">${r.households?.owner_name}</td>
-                                <td class="p-3">${monthNames[r.month]} ${r.year_th}</td>
-                                <td class="p-3">${r.daily_volume} ลิตร</td>
-                                <td class="p-3 text-emerald-700 font-bold">${r.calculated_fee} ฿</td>
-                                <td class="p-3 text-center"><button onclick="deleteWasteRecord('${r.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">ลบ</button></td>
-                            </tr>
-                        `;
+                        hasData = true;
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-stone-50';
+
+                        const tdHouse = document.createElement('td');
+                        tdHouse.className = 'p-3 font-semibold';
+                        tdHouse.textContent = `${r.households?.house_number} (ม.${r.households?.village_no})`;
+                        tr.appendChild(tdHouse);
+
+                        const tdOwner = document.createElement('td');
+                        tdOwner.className = 'p-3';
+                        tdOwner.textContent = r.households?.owner_name;
+                        tr.appendChild(tdOwner);
+
+                        const tdMonth = document.createElement('td');
+                        tdMonth.className = 'p-3';
+                        tdMonth.textContent = `${monthNames[r.month]} ${r.year_th}`;
+                        tr.appendChild(tdMonth);
+
+                        const tdVol = document.createElement('td');
+                        tdVol.className = 'p-3';
+                        tdVol.textContent = `${r.daily_volume} ลิตร`;
+                        tr.appendChild(tdVol);
+
+                        const tdFee = document.createElement('td');
+                        tdFee.className = 'p-3 text-emerald-700 font-bold';
+                        tdFee.textContent = `${r.calculated_fee} ฿`;
+                        tr.appendChild(tdFee);
+
+                        const tdAction = document.createElement('td');
+                        tdAction.className = 'p-3 text-center';
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'bg-red-500 text-white px-2 py-1 rounded text-xs';
+                        delBtn.textContent = 'ลบ';
+                        delBtn.onclick = () => deleteWasteRecord(r.id);
+                        tdAction.appendChild(delBtn);
+                        tr.appendChild(tdAction);
+
+                        tbody.appendChild(tr);
                     }
                 });
+                if (!hasData) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-stone-500">ไม่พบรายการ</td></tr>`;
+                }
             } else { tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-stone-500">ไม่พบรายการ</td></tr>`; }
         }
 
@@ -1334,6 +1430,7 @@
             filterWasteVolumeReportTable();
         }
 
+        // ป้องกัน XSS ในตารางรายงานปริมาณขยะ
         function filterWasteVolumeReportTable() {
             const villageFilter = document.getElementById('report-filter-village').value;
             const keyword = document.getElementById('report-filter-keyword').value.toLowerCase();
@@ -1350,15 +1447,35 @@
 
             if (filtered.length > 0) {
                 filtered.forEach(item => {
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-stone-50">
-                            <td class="p-3 font-semibold">${item.house_number}</td>
-                            <td class="p-3">หมู่ที่ ${item.village_no}</td>
-                            <td class="p-3">${item.owner_name}</td>
-                            <td class="p-3 text-right font-medium">${item.month_count} เดือน</td>
-                            <td class="p-3 text-right font-bold text-emerald-700">${item.total_volume.toLocaleString()} ลิตร</td>
-                        </tr>
-                    `;
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-stone-50';
+
+                    const tdHouse = document.createElement('td');
+                    tdHouse.className = 'p-3 font-semibold';
+                    tdHouse.textContent = item.house_number;
+                    tr.appendChild(tdHouse);
+
+                    const tdVillage = document.createElement('td');
+                    tdVillage.className = 'p-3';
+                    tdVillage.textContent = `หมู่ที่ ${item.village_no}`;
+                    tr.appendChild(tdVillage);
+
+                    const tdOwner = document.createElement('td');
+                    tdOwner.className = 'p-3';
+                    tdOwner.textContent = item.owner_name;
+                    tr.appendChild(tdOwner);
+
+                    const tdCount = document.createElement('td');
+                    tdCount.className = 'p-3 text-right font-medium';
+                    tdCount.textContent = `${item.month_count} เดือน`;
+                    tr.appendChild(tdCount);
+
+                    const tdVol = document.createElement('td');
+                    tdVol.className = 'p-3 text-right font-bold text-emerald-700';
+                    tdVol.textContent = `${item.total_volume.toLocaleString()} ลิตร`;
+                    tr.appendChild(tdVol);
+
+                    tbody.appendChild(tr);
                 });
             } else {
                 tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-stone-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
@@ -1383,7 +1500,6 @@
         }
 
         // --- ส่วนการออกใบแจ้งหนี้แบบกลุ่ม (Batch สำหรับครัวเรือน) ---
-        // เลือกสร้างเฉพาะครัวเรือนที่ยังใช้งานถังขยะอยู่ (is_active !== false)
         async function generateBatchHouseholdInvoices() {
             const village = document.getElementById('batch-village').value;
             const startM = parseInt(document.getElementById('batch-start-month').value);
@@ -1476,6 +1592,7 @@
             renderInvoiceTable(allInvoiceHistory);
         }
 
+        // ป้องกัน XSS ในตารางประวัติใบแจ้งหนี้
         function renderInvoiceTable(data) {
             const tbody = document.getElementById('invoice-history-tbody');
             tbody.innerHTML = '';
@@ -1483,25 +1600,76 @@
                 data.forEach(inv => {
                     const isPaid = inv.status === 'paid';
                     const isCancelled = inv.status === 'cancelled';
-                    let statusBadge = isCancelled ? `<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold">ยกเลิกแล้ว</span>` : (isPaid ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs font-bold">ชำระแล้ว</span>` : `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-bold">ค้างชำระ</span>`);
                     
-                    const typeText = inv.households?.customer_type === 'business' ? 'กิจการ' : 'ครัวเรือน';
-                    const actionBtns = isCancelled ? `-` : `
-                        <button onclick="printInvoice('${inv.id}')" class="bg-blue-600 text-white px-2.5 py-1 rounded text-xs">พิมพ์ A4</button>
-                        ${!isPaid ? `<button onclick="openPaymentModal('${inv.id}', '${inv.invoice_no}', '${inv.households?.owner_name}', ${inv.total_amount})" class="bg-emerald-600 text-white px-2.5 py-1 rounded text-xs">รับเงิน</button>` : ''}
-                        <button onclick="cancelInvoice('${inv.id}')" class="bg-red-500 text-white px-2.5 py-1 rounded text-xs">ยกเลิก</button>
-                    `;
+                    const tr = document.createElement('tr');
+                    tr.className = `hover:bg-stone-50 ${isCancelled ? 'opacity-50 line-through' : ''}`;
 
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-stone-50 ${isCancelled ? 'opacity-50 line-through' : ''}">
-                            <td class="p-3 font-mono font-semibold">${inv.invoice_no}</td>
-                            <td class="p-3">${inv.households?.house_number} (${inv.households?.owner_name}) <span class="text-xs text-stone-500">[${typeText}]</span></td>
-                            <td class="p-3">${monthNames[inv.start_month]} ${inv.start_year} - ${monthNames[inv.end_month]} ${inv.end_year}</td>
-                            <td class="p-3 font-bold text-emerald-700">${parseFloat(inv.total_amount).toLocaleString()} ฿</td>
-                            <td class="p-3">${statusBadge}</td>
-                            <td class="p-3 text-center space-x-1">${actionBtns}</td>
-                        </tr>
-                    `;
+                    const tdNo = document.createElement('td');
+                    tdNo.className = 'p-3 font-mono font-semibold';
+                    tdNo.textContent = inv.invoice_no;
+                    tr.appendChild(tdNo);
+
+                    const tdOwner = document.createElement('td');
+                    tdOwner.className = 'p-3';
+                    const typeText = inv.households?.customer_type === 'business' ? 'กิจการ' : 'ครัวเรือน';
+                    tdOwner.textContent = `${inv.households?.house_number || ''} (${inv.households?.owner_name || ''}) [${typeText}]`;
+                    tr.appendChild(tdOwner);
+
+                    const tdPeriod = document.createElement('td');
+                    tdPeriod.className = 'p-3';
+                    tdPeriod.textContent = `${monthNames[inv.start_month]} ${inv.start_year} - ${monthNames[inv.end_month]} ${inv.end_year}`;
+                    tr.appendChild(tdPeriod);
+
+                    const tdAmount = document.createElement('td');
+                    tdAmount.className = 'p-3 font-bold text-emerald-700';
+                    tdAmount.textContent = `${parseFloat(inv.total_amount).toLocaleString()} ฿`;
+                    tr.appendChild(tdAmount);
+
+                    const tdStatus = document.createElement('td');
+                    tdStatus.className = 'p-3';
+                    const statusSpan = document.createElement('span');
+                    if (isCancelled) {
+                        statusSpan.className = 'px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold';
+                        statusSpan.textContent = 'ยกเลิกแล้ว';
+                    } else if (isPaid) {
+                        statusSpan.className = 'px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs font-bold';
+                        statusSpan.textContent = 'ชำระแล้ว';
+                    } else {
+                        statusSpan.className = 'px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-bold';
+                        statusSpan.textContent = 'ค้างชำระ';
+                    }
+                    tdStatus.appendChild(statusSpan);
+                    tr.appendChild(tdStatus);
+
+                    const tdAction = document.createElement('td');
+                    tdAction.className = 'p-3 text-center space-x-1';
+
+                    if (!isCancelled) {
+                        const printBtn = document.createElement('button');
+                        printBtn.className = 'bg-blue-600 text-white px-2.5 py-1 rounded text-xs';
+                        printBtn.textContent = 'พิมพ์ A4';
+                        printBtn.onclick = () => printInvoice(inv.id);
+                        tdAction.appendChild(printBtn);
+
+                        if (!isPaid) {
+                            const payBtn = document.createElement('button');
+                            payBtn.className = 'bg-emerald-600 text-white px-2.5 py-1 rounded text-xs';
+                            payBtn.textContent = 'รับเงิน';
+                            payBtn.onclick = () => openPaymentModal(inv.id, inv.invoice_no, inv.households?.owner_name, inv.total_amount);
+                            tdAction.appendChild(payBtn);
+                        }
+
+                        const cancelBtn = document.createElement('button');
+                        cancelBtn.className = 'bg-red-500 text-white px-2.5 py-1 rounded text-xs';
+                        cancelBtn.textContent = 'ยกเลิก';
+                        cancelBtn.onclick = () => cancelInvoice(inv.id);
+                        tdAction.appendChild(cancelBtn);
+                    } else {
+                        tdAction.textContent = '-';
+                    }
+
+                    tr.appendChild(tdAction);
+                    tbody.appendChild(tr);
                 });
             } else { tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-stone-500">ไม่พบประวัติ</td></tr>`; }
         }
@@ -1597,7 +1765,6 @@
         }
 
         // --- หน้ารายงานการจัดเก็บเงินและติดตามการชำระ ---
-        // จะนำเฉพาะครัวเรือนที่เปิดบริการอยู่ (is_active !== false) มาประเมินเพื่อสร้างรายงาน
         async function loadPaymentReport() {
             const month = parseInt(document.getElementById('payment-filter-month').value);
             const year_th = parseInt(document.getElementById('payment-filter-year').value);
@@ -1684,35 +1851,81 @@
             if (reportRows.length > 0) {
                 reportRows.forEach(row => {
                     const h = row.household;
-                    const typeBadge = h.customer_type === 'business' 
-                        ? `<span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-bold">กิจการ</span>` 
-                        : `<span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold">ครัวเรือน</span>`;
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-stone-50';
 
-                    let statusBadge = '';
-                    let actionBtn = '';
+                    const tdHouse = document.createElement('td');
+                    tdHouse.className = 'p-3 font-semibold';
+                    tdHouse.textContent = `${h.house_number} (ม.${h.village_no})`;
+                    tr.appendChild(tdHouse);
 
-                    if (row.status === 'uncreated') {
-                        statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold">🟡 ยังไม่สร้างใบแจ้งหนี้</span>`;
-                        actionBtn = `<button onclick="switchTab('invoicing')" class="bg-[#2E5A44] hover:bg-[#1B3B2B] text-white px-2.5 py-1 rounded text-xs font-medium">ไปหน้าออกใบแจ้งหนี้</button>`;
-                    } else if (row.status === 'unpaid') {
-                        statusBadge = `<span class="px-2.5 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold">🟠 ค้างชำระ</span>`;
-                        actionBtn = `<button onclick="openPaymentModal('${row.invObj.id}', '${row.invObj.invoice_no}', '${h.owner_name}', ${row.invObj.total_amount})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-xs font-medium">รับเงิน</button>`;
-                    } else if (row.status === 'paid') {
-                        statusBadge = `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">🟢 ชำระแล้ว</span>`;
-                        actionBtn = `<span class="text-xs text-stone-500 font-medium">รับเงินเมื่อ ${new Date(row.invObj.paid_at).toLocaleDateString('th-TH')}</span>`;
+                    const tdOwner = document.createElement('td');
+                    tdOwner.className = 'p-3 font-medium';
+                    tdOwner.textContent = h.owner_name;
+                    tr.appendChild(tdOwner);
+
+                    const tdType = document.createElement('td');
+                    tdType.className = 'p-3';
+                    const typeSpan = document.createElement('span');
+                    if (h.customer_type === 'business') {
+                        typeSpan.className = 'px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-bold';
+                        typeSpan.textContent = 'กิจการ';
+                    } else {
+                        typeSpan.className = 'px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-bold';
+                        typeSpan.textContent = 'ครัวเรือน';
                     }
+                    tdType.appendChild(typeSpan);
+                    tr.appendChild(tdType);
 
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-stone-50">
-                            <td class="p-3 font-semibold">${h.house_number} (ม.${h.village_no})</td>
-                            <td class="p-3 font-medium">${h.owner_name}</td>
-                            <td class="p-3">${typeBadge}</td>
-                            <td class="p-3 font-mono font-medium text-stone-700">${row.invoiceNo}</td>
-                            <td class="p-3 text-right font-bold text-[#2E5A44]">${parseFloat(row.amount).toLocaleString()} ฿</td>
-                            <td class="p-3 text-center">${statusBadge}</td>
-                            <td class="p-3 text-center">${actionBtn}</td>
-                        </tr>
-                    `;
+                    const tdInvNo = document.createElement('td');
+                    tdInvNo.className = 'p-3 font-mono font-medium text-stone-700';
+                    tdInvNo.textContent = row.invoiceNo;
+                    tr.appendChild(tdInvNo);
+
+                    const tdAmount = document.createElement('td');
+                    tdAmount.className = 'p-3 text-right font-bold text-[#2E5A44]';
+                    tdAmount.textContent = `${parseFloat(row.amount).toLocaleString()} ฿`;
+                    tr.appendChild(tdAmount);
+
+                    const tdStatus = document.createElement('td');
+                    tdStatus.className = 'p-3 text-center';
+                    const statusSpan = document.createElement('span');
+                    if (row.status === 'uncreated') {
+                        statusSpan.className = 'px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold';
+                        statusSpan.textContent = '🟡 ยังไม่สร้างใบแจ้งหนี้';
+                    } else if (row.status === 'unpaid') {
+                        statusSpan.className = 'px-2.5 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold';
+                        statusSpan.textContent = '🟠 ค้างชำระ';
+                    } else if (row.status === 'paid') {
+                        statusSpan.className = 'px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold';
+                        statusSpan.textContent = '🟢 ชำระแล้ว';
+                    }
+                    tdStatus.appendChild(statusSpan);
+                    tr.appendChild(tdStatus);
+
+                    const tdAction = document.createElement('td');
+                    tdAction.className = 'p-3 text-center';
+                    if (row.status === 'uncreated') {
+                        const btn = document.createElement('button');
+                        btn.className = 'bg-[#2E5A44] hover:bg-[#1B3B2B] text-white px-2.5 py-1 rounded text-xs font-medium';
+                        btn.textContent = 'ไปหน้าออกใบแจ้งหนี้';
+                        btn.onclick = () => switchTab('invoicing');
+                        tdAction.appendChild(btn);
+                    } else if (row.status === 'unpaid') {
+                        const btn = document.createElement('button');
+                        btn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-xs font-medium';
+                        btn.textContent = 'รับเงิน';
+                        btn.onclick = () => openPaymentModal(row.invObj.id, row.invObj.invoice_no, h.owner_name, row.invObj.total_amount);
+                        tdAction.appendChild(btn);
+                    } else if (row.status === 'paid') {
+                        const span = document.createElement('span');
+                        span.className = 'text-xs text-stone-500 font-medium';
+                        span.textContent = `รับเงินเมื่อ ${new Date(row.invObj.paid_at).toLocaleDateString('th-TH')}`;
+                        tdAction.appendChild(span);
+                    }
+                    tr.appendChild(tdAction);
+
+                    tbody.appendChild(tr);
                 });
             } else {
                 tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-stone-500">ไม่พบรายการข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
