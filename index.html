@@ -41,7 +41,7 @@
                     <label class="block text-sm font-medium text-stone-700 mb-1">รหัสผ่าน</label>
                     <input type="password" id="login-password" required class="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-[#2E5A44] focus:outline-none">
                 </div>
-                <button type="submit" class="w-full py-3 bg-[#2E5A44] hover:bg-[#1B3B2B] text-white font-medium rounded-lg transition shadow-md">
+                <button type="submit" id="login-btn" class="w-full py-3 bg-[#2E5A44] hover:bg-[#1B3B2B] text-white font-medium rounded-lg transition shadow-md">
                     เข้าสู่ระบบ
                 </button>
                 <div id="login-error" class="text-red-500 text-sm text-center hidden"></div>
@@ -60,7 +60,8 @@
                 </div>
             </div>
             <div class="flex items-center space-x-3">
-                <button onclick="backupAllTablesToExcel()" class="bg-blue-600 hover:bg-blue-700 text-sm px-3 py-1.5 rounded-lg transition font-medium shadow-sm flex items-center space-x-1">
+                <!-- ปุ่ม Backup แสดงเฉพาะ Admin -->
+                <button id="btn-backup" onclick="backupAllTablesToExcel()" class="hidden bg-blue-600 hover:bg-blue-700 text-sm px-3 py-1.5 rounded-lg transition font-medium shadow-sm flex items-center space-x-1">
                     <span>💾 สำรองข้อมูลทั้งหมด (Backup)</span>
                 </button>
                 <span id="user-display" class="text-sm bg-white/10 px-3 py-1 rounded-full"></span>
@@ -70,14 +71,19 @@
 
         <div class="flex-1 flex flex-col md:flex-row">
             <!-- เมนูด้านข้าง -->
-            <aside class="no-print w-full md:w-64 bg-white border-r border-[#EBE3D8] p-4 space-y-2">
-                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full text-left px-4 py-2.5 rounded-lg font-medium bg-[#2E5A44] text-white">📊 แดชบอร์ดภาพรวม</button>
-                <button onclick="switchTab('households')" id="nav-households" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">🏠 ทะเบียนครัวเรือน/กิจการ</button>
-                <button onclick="switchTab('add-household')" id="nav-add-household" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">➕ เพิ่มข้อมูลรายเดี่ยว</button>
-                <button onclick="switchTab('monthly-waste')" id="nav-monthly-waste" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">🗑️ บันทึกขยะ (เฉพาะกิจการ)</button>
-                <button onclick="switchTab('waste-report')" id="nav-waste-report" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">📉 รายงานปริมาณขยะ</button>
-                <button onclick="switchTab('payment-status')" id="nav-payment-status" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">📈 รายงานและรับชำระเงิน</button>
-                <button onclick="switchTab('invoicing')" id="nav-invoicing" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">📄 ออกใบแจ้งหนี้ / พิมพ์ A4</button>
+            <aside class="no-print w-full md:w-64 bg-white border-r border-[#EBE3D8] p-4 space-y-2 flex flex-col justify-between">
+                <div class="space-y-2">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full text-left px-4 py-2.5 rounded-lg font-medium bg-[#2E5A44] text-white">📊 แดชบอร์ดภาพรวม</button>
+                    <button onclick="switchTab('households')" id="nav-households" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">🏠 ทะเบียนครัวเรือน/กิจการ</button>
+                    <button onclick="switchTab('add-household')" id="nav-add-household" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">➕ เพิ่มข้อมูลรายเดี่ยว</button>
+                    <button onclick="switchTab('monthly-waste')" id="nav-monthly-waste" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">🗑️ บันทึกขยะ (เฉพาะกิจการ)</button>
+                    <button onclick="switchTab('waste-report')" id="nav-waste-report" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">📉 รายงานปริมาณขยะ</button>
+                    <button onclick="switchTab('payment-status')" id="nav-payment-status" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">📈 รายงานและรับชำระเงิน</button>
+                    <button onclick="switchTab('invoicing')" id="nav-invoicing" class="w-full text-left px-4 py-2.5 rounded-lg font-medium hover:bg-[#FAF8F5] text-[#2E5A44]">📄 ออกใบแจ้งหนี้ / พิมพ์ A4</button>
+                </div>
+                <div class="pt-4 border-t border-stone-200 text-center text-[11px] text-stone-400">
+                    ผู้พัฒนา: กฤษฎา หาสีงาม<br>นักวิชาการสาธารณสุข โทร. 081-2636892
+                </div>
             </aside>
 
             <!-- เนื้อหาแต่ละหน้า -->
@@ -763,55 +769,108 @@
         let allBusinessHouseholds = [];
         let allInvoiceHistory = [];
         let rawWasteReportData = [];
+        let currentUserRole = null; // เก็บข้อมูล Role ของผู้ใช้งานปัจจุบัน
 
         // ตัวแปรควบคุมการแบ่งหน้า (Pagination)
         let currentHouseholdPage = 1;
         let householdRowsPerPage = 100;
         let filteredHouseholdsCache = [];
 
-        // ล็อกอินเช็คจากตาราง second_schema.officers
+        // ล็อกอินผ่าน Supabase Auth และตรวจสอบ Role
         async function handleLogin(event) {
             event.preventDefault();
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value.trim();
             const errorEl = document.getElementById('login-error');
+            const loginBtn = document.getElementById('login-btn');
 
-            const { data, error } = await supabaseClient
-                .schema('second_schema')
-                .from('officers')
-                .select('*')
-                .eq('email', email)
-                .eq('password', password)
-                .maybeSingle();
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'กำลังตรวจสอบข้อมูล...';
+            errorEl.classList.add('hidden');
 
-            if (error || !data) {
+            const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (authError || !authData.user) {
                 errorEl.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
                 errorEl.classList.remove('hidden');
-            } else {
-                errorEl.classList.add('hidden');
-                localStorage.setItem('second_schema_user', JSON.stringify(data));
-                checkAuth();
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'เข้าสู่ระบบ';
+                return;
             }
+
+            // ดึงข้อมูลโปรไฟล์เจ้าหน้าที่และเชื่อมโยงกับตาราง roles ผ่าน user_id
+            const { data: officerData, error: officerError } = await supabaseClient
+                .schema('second_schema')
+                .from('officers')
+                .select('*, roles(id, role_name)')
+                .eq('user_id', authData.user.id)
+                .single();
+
+            if (officerError || !officerData) {
+                await supabaseClient.auth.signOut();
+                errorEl.textContent = 'ไม่พบข้อมูลสิทธิ์เจ้าหน้าที่ในระบบ กรุณาติดต่อผู้ดูแลระบบ';
+                errorEl.classList.remove('hidden');
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'เข้าสู่ระบบ';
+                return;
+            }
+
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'เข้าสู่ระบบ';
+            applyUserSession(officerData);
         }
 
-        // ตรวจสอบ Session จาก localStorage
-        function checkAuth() {
-            const savedUser = localStorage.getItem('second_schema_user');
-            if (savedUser) {
-                const user = JSON.parse(savedUser);
-                document.getElementById('login-section').classList.add('hidden');
-                document.getElementById('app-section').classList.remove('hidden');
-                document.getElementById('user-display').textContent = `👤 ${user.name} (${user.position || 'เจ้าหน้าที่'})`;
-                loadDashboard();
-            } else {
-                document.getElementById('login-section').classList.remove('hidden');
-                document.getElementById('app-section').classList.add('hidden');
+        // ตรวจสอบ Session จาก Supabase Auth อัตโนมัติ
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            if (session && session.user) {
+                const { data: officerData } = await supabaseClient
+                    .schema('second_schema')
+                    .from('officers')
+                    .select('*, roles(id, role_name)')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                if (officerData) {
+                    applyUserSession(officerData);
+                    return;
+                }
             }
+
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('app-section').classList.add('hidden');
+        }
+
+        // กำหนดสิทธิ์และ UI ตาม Role
+        function applyUserSession(officer) {
+            currentUserRole = officer.roles; // { id: '...', role_name: 'admin' หรือ 'staff' }
+            const roleLabel = currentUserRole?.role_name === 'admin' ? 'ผู้ดูแลระบบ' : (officer.position || 'เจ้าหน้าที่');
+
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('app-section').classList.remove('hidden');
+            document.getElementById('user-display').textContent = `👤 ${officer.name} (${roleLabel})`;
+
+            // แสดง/ซ่อนปุ่ม Backup เฉพาะ Admin
+            const backupBtn = document.getElementById('btn-backup');
+            if (backupBtn) {
+                if (currentUserRole?.role_name === 'admin') {
+                    backupBtn.classList.remove('hidden');
+                } else {
+                    backupBtn.classList.add('hidden');
+                }
+            }
+
+            loadDashboard();
         }
 
         // ออกจากระบบ
-        function handleLogout() {
-            localStorage.removeItem('second_schema_user');
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            currentUserRole = null;
             checkAuth();
         }
 
@@ -942,6 +1001,9 @@
         }
 
         async function deleteHousehold(id) {
+            if (currentUserRole?.role_name !== 'admin') {
+                return alert('เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่มีสิทธิ์ลบข้อมูลถาวร');
+            }
             if (confirm('ยืนยันการลบข้อมูลนี้ถาวรจากระบบ?')) {
                 await supabaseClient.schema('second_schema').from('monthly_records').delete().eq('household_id', id);
                 await supabaseClient.schema('second_schema').from('invoices_history').delete().eq('household_id', id);
@@ -1033,7 +1095,7 @@
             renderHouseholdTable();
         }
 
-        // ป้องกัน XSS โดยใช้ textContent สร้าง Element ในตารางครัวเรือน
+        // ป้องกัน XSS โดยใช้ textContent สร้าง Element ในตารางครัวเรือน + ควบคุมปุ่มลบตาม Role
         function renderHouseholdTable() {
             const tbody = document.getElementById('household-table-body');
             const badge = document.getElementById('household-count-badge');
@@ -1150,11 +1212,14 @@
                 editBtn.onclick = () => editHousehold(h.id);
                 tdAction.appendChild(editBtn);
 
-                const delBtn = document.createElement('button');
-                delBtn.className = 'bg-red-500 text-white px-2.5 py-1 rounded text-xs font-medium';
-                delBtn.textContent = 'ลบ';
-                delBtn.onclick = () => deleteHousehold(h.id);
-                tdAction.appendChild(delBtn);
+                // ปุ่มลบแสดงเฉพาะ Admin เท่านั้น
+                if (currentUserRole?.role_name === 'admin') {
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'bg-red-500 text-white px-2.5 py-1 rounded text-xs font-medium';
+                    delBtn.textContent = 'ลบ';
+                    delBtn.onclick = () => deleteHousehold(h.id);
+                    tdAction.appendChild(delBtn);
+                }
 
                 tr.appendChild(tdAction);
                 tbody.appendChild(tr);
@@ -1945,6 +2010,9 @@
         }
 
         async function backupAllTablesToExcel() {
+            if (currentUserRole?.role_name !== 'admin') {
+                return alert('เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่มีสิทธิ์สำรองข้อมูล');
+            }
             const houses = await fetchAllHouseholds();
             const { data: records } = await supabaseClient.schema('second_schema').from('monthly_records').select('*');
             const { data: invoices } = await supabaseClient.schema('second_schema').from('invoices_history').select('*');
