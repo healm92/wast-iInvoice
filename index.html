@@ -60,7 +60,6 @@
                 </div>
             </div>
             <div class="flex items-center space-x-3">
-                <!-- ปุ่ม Backup แสดงเฉพาะ Admin -->
                 <button id="btn-backup" onclick="backupAllTablesToExcel()" class="hidden bg-blue-600 hover:bg-blue-700 text-sm px-3 py-1.5 rounded-lg transition font-medium shadow-sm flex items-center space-x-1">
                     <span>💾 สำรองข้อมูลทั้งหมด (Backup)</span>
                 </button>
@@ -498,10 +497,10 @@
                     <h2 class="text-xl font-bold text-[#1B3B2B]">ออกใบแจ้งหนี้และพิมพ์เอกสาร A4</h2>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- ส่วนที่ 1: ออกใบแจ้งหนี้ครัวเรือนแบบกลุ่ม -->
+                        <!-- ส่วนที่ 1: ออกใบแจ้งหนี้ครัวเรือนแบบกลุ่ม (ปลอดภัยผ่าน RPC) -->
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-[#EBE3D8] space-y-4">
                             <h3 class="font-bold text-md text-[#2E5A44] border-b pb-2">🏠 ออกใบแจ้งหนี้ "ครัวเรือน" (รวบยอดกลุ่ม)</h3>
-                            <p class="text-xs text-stone-500">เลือกช่วงเดือนและหมู่บ้านเพื่อออกใบแจ้งหนี้ครัวเรือนพร้อมกันทีเดียวทั้งหมด (เฉพาะครัวเรือนที่ยังใช้งานถังขยะอยู่)</p>
+                            <p class="text-xs text-stone-500">เลือกช่วงเดือนและหมู่บ้านเพื่อออกใบแจ้งหนี้ครัวเรือนพร้อมกันทีเดียวทั้งหมด (ประมวลผลปลอดภัยผ่าน Server)</p>
                             
                             <div>
                                 <label class="block text-xs font-semibold mb-1">เลือกหมู่บ้าน</label>
@@ -543,8 +542,8 @@
                                 </div>
                             </div>
 
-                            <button onclick="generateBatchHouseholdInvoices()" class="w-full py-2.5 bg-[#2E5A44] hover:bg-[#1B3B2B] text-white font-medium rounded-lg text-sm shadow">
-                                🚀 สร้างใบแจ้งหนี้ครัวเรือนแบบกลุ่มทันที
+                            <button onclick="generateSecureBatchHouseholdInvoices()" class="w-full py-2.5 bg-[#2E5A44] hover:bg-[#1B3B2B] text-white font-medium rounded-lg text-sm shadow">
+                                🚀 สร้างใบแจ้งหนี้ครัวเรือนแบบกลุ่ม (ปลอดภัย)
                             </button>
                         </div>
 
@@ -769,14 +768,12 @@
         let allBusinessHouseholds = [];
         let allInvoiceHistory = [];
         let rawWasteReportData = [];
-        let currentUserRole = null; // เก็บข้อมูล Role ของผู้ใช้งานปัจจุบัน
+        let currentUserRole = null;
 
-        // ตัวแปรควบคุมการแบ่งหน้า (Pagination)
         let currentHouseholdPage = 1;
         let householdRowsPerPage = 100;
         let filteredHouseholdsCache = [];
 
-        // ล็อกอินผ่าน Supabase Auth และตรวจสอบ Role
         async function handleLogin(event) {
             event.preventDefault();
             const email = document.getElementById('login-email').value.trim();
@@ -801,7 +798,6 @@
                 return;
             }
 
-            // ดึงข้อมูลโปรไฟล์เจ้าหน้าที่และเชื่อมโยงกับตาราง roles ผ่าน user_id
             const { data: officerData, error: officerError } = await supabaseClient
                 .schema('second_schema')
                 .from('officers')
@@ -823,7 +819,6 @@
             applyUserSession(officerData);
         }
 
-        // ตรวจสอบ Session จาก Supabase Auth อัตโนมัติ
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
 
@@ -845,16 +840,14 @@
             document.getElementById('app-section').classList.add('hidden');
         }
 
-        // กำหนดสิทธิ์และ UI ตาม Role
         function applyUserSession(officer) {
-            currentUserRole = officer.roles; // { id: '...', role_name: 'admin' หรือ 'staff' }
+            currentUserRole = officer.roles;
             const roleLabel = currentUserRole?.role_name === 'admin' ? 'ผู้ดูแลระบบ' : (officer.position || 'เจ้าหน้าที่');
 
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('app-section').classList.remove('hidden');
             document.getElementById('user-display').textContent = `👤 ${officer.name} (${roleLabel})`;
 
-            // แสดง/ซ่อนปุ่ม Backup เฉพาะ Admin
             const backupBtn = document.getElementById('btn-backup');
             if (backupBtn) {
                 if (currentUserRole?.role_name === 'admin') {
@@ -867,7 +860,6 @@
             loadDashboard();
         }
 
-        // ออกจากระบบ
         async function handleLogout() {
             await supabaseClient.auth.signOut();
             currentUserRole = null;
@@ -981,7 +973,6 @@
             }
         }
 
-        // สลับสถานะการใช้บริการถังขยะ (ยกเลิก / เปิดใช้งานใหม่)
         async function toggleHouseholdActiveStatus(id, currentStatus) {
             const actionText = currentStatus ? 'ยกเลิกการใช้งานถังขยะ' : 'เปิดกลับมาใช้งานถังขยะ';
             if (confirm(`ยืนยันการ "${actionText}" สำหรับรายการนี้?`)) {
@@ -1020,7 +1011,6 @@
             document.querySelector('#tab-add-household form').reset();
         }
 
-        // --- ฟังก์ชันดึงข้อมูลทั้งหมดทะลุขีดจำกัด 1,000 แถวของ Supabase ---
         async function fetchAllHouseholds() {
             let allData = [];
             let step = 1000;
@@ -1065,7 +1055,6 @@
 
             filteredHouseholdsCache = allHouseholds.filter(h => {
                 const matchType = (typeFilter === 'all') || (h.customer_type === typeFilter);
-                
                 const isItemActive = h.is_active ?? true;
                 const matchStatus = (statusFilter === 'all') || 
                                     (statusFilter === 'active' && isItemActive) || 
@@ -1095,7 +1084,6 @@
             renderHouseholdTable();
         }
 
-        // ป้องกัน XSS โดยใช้ textContent สร้าง Element ในตารางครัวเรือน + ควบคุมปุ่มลบตาม Role
         function renderHouseholdTable() {
             const tbody = document.getElementById('household-table-body');
             const badge = document.getElementById('household-count-badge');
@@ -1132,25 +1120,21 @@
                 const tr = document.createElement('tr');
                 tr.className = `hover:bg-stone-50 ${!isActive ? 'bg-stone-50/70 text-stone-400' : ''}`;
 
-                // 1. บ้านเลขที่
                 const tdHouseNo = document.createElement('td');
                 tdHouseNo.className = 'p-3 font-semibold';
                 tdHouseNo.textContent = h.house_number;
                 tr.appendChild(tdHouseNo);
 
-                // 2. หมู่บ้าน
                 const tdVillage = document.createElement('td');
                 tdVillage.className = 'p-3';
                 tdVillage.textContent = `หมู่ที่ ${h.village_no}`;
                 tr.appendChild(tdVillage);
 
-                // 3. ชื่อเจ้าบ้าน / กิจการ
                 const tdOwner = document.createElement('td');
                 tdOwner.className = 'p-3 font-medium';
                 tdOwner.textContent = h.owner_name;
                 tr.appendChild(tdOwner);
 
-                // 4. ประเภท
                 const tdType = document.createElement('td');
                 tdType.className = 'p-3';
                 const typeSpan = document.createElement('span');
@@ -1164,7 +1148,6 @@
                 tdType.appendChild(typeSpan);
                 tr.appendChild(tdType);
 
-                // 5. สถานะ
                 const tdStatus = document.createElement('td');
                 tdStatus.className = 'p-3 text-center';
                 const statusSpan = document.createElement('span');
@@ -1178,19 +1161,16 @@
                 tdStatus.appendChild(statusSpan);
                 tr.appendChild(tdStatus);
 
-                // 6. จำนวนถังขยะ
                 const tdBin = document.createElement('td');
                 tdBin.className = 'p-3 text-center font-semibold';
                 tdBin.textContent = `${h.bin_count || 1} ถัง`;
                 tr.appendChild(tdBin);
 
-                // 7. อัตราค่าบริการ
                 const tdRate = document.createElement('td');
                 tdRate.className = `p-3 text-right font-bold ${isActive ? 'text-[#2E5A44]' : 'text-stone-400'}`;
                 tdRate.textContent = h.customer_type === 'business' ? 'ตามปริมาณขยะ (ลิตร)' : `${((h.bin_count || 1) * 15).toLocaleString()} บาท`;
                 tr.appendChild(tdRate);
 
-                // 8. จัดการ
                 const tdAction = document.createElement('td');
                 tdAction.className = 'p-3 text-center space-x-1';
 
@@ -1212,7 +1192,6 @@
                 editBtn.onclick = () => editHousehold(h.id);
                 tdAction.appendChild(editBtn);
 
-                // ปุ่มลบแสดงเฉพาะ Admin เท่านั้น
                 if (currentUserRole?.role_name === 'admin') {
                     const delBtn = document.createElement('button');
                     delBtn.className = 'bg-red-500 text-white px-2.5 py-1 rounded text-xs font-medium';
@@ -1262,7 +1241,6 @@
             }
         }
 
-        // --- ส่วนการส่งออกไฟล์ Excel ---
         function exportHouseholdsExcel() {
             if (allHouseholds.length === 0) return alert('ไม่มีข้อมูลสำหรับส่งออก');
             const wb = XLSX.utils.book_new();
@@ -1279,7 +1257,6 @@
             XLSX.writeFile(wb, `households_all_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
-        // ส่งออกเฉพาะที่ยกเลิกถังขยะแล้ว
         function exportInactiveHouseholdsExcel() {
             const inactives = allHouseholds.filter(h => h.is_active === false);
             if (inactives.length === 0) return alert('ไม่พบข้อมูลผู้ยกเลิกการใช้ถังขยะ');
@@ -1297,7 +1274,6 @@
             XLSX.writeFile(wb, `households_cancelled_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
-        // --- ส่วนจัดการขยะกิจการ ---
         async function populateBusinessDropdown() {
             const { data } = await supabaseClient.schema('second_schema').from('households').select('*').eq('customer_type', 'business').order('village_no');
             allBusinessHouseholds = (data || []).filter(h => h.is_active !== false);
@@ -1381,7 +1357,6 @@
             else { alert('บันทึกขยะกิจการสำเร็จ'); resetWasteForm(); loadMonthlyWasteRecords(); }
         }
 
-        // ป้องกัน XSS ในตารางบันทึกขยะกิจการ
         async function loadMonthlyWasteRecords() {
             const { data } = await supabaseClient.schema('second_schema').from('monthly_records').select('*, households(*)').order('created_at', { ascending: false });
             const tbody = document.getElementById('waste-records-tbody');
@@ -1446,7 +1421,6 @@
             document.getElementById('duplicate-warning').classList.add('hidden');
         }
 
-        // --- ส่วนรายงานสรุปปริมาณขยะกิจการ ---
         async function generateWasteVolumeReport() {
             const startM = parseInt(document.getElementById('report-start-month').value);
             const startY = parseInt(document.getElementById('report-start-year').value);
@@ -1462,10 +1436,7 @@
             }
 
             const { data: records, error } = await supabaseClient.schema('second_schema').from('monthly_records').select('*, households(*)');
-            if (error) {
-                console.error(error);
-                return;
-            }
+            if (error) { console.error(error); return; }
 
             const summaryMap = {};
 
@@ -1495,7 +1466,6 @@
             filterWasteVolumeReportTable();
         }
 
-        // ป้องกัน XSS ในตารางรายงานปริมาณขยะ
         function filterWasteVolumeReportTable() {
             const villageFilter = document.getElementById('report-filter-village').value;
             const keyword = document.getElementById('report-filter-keyword').value.toLowerCase();
@@ -1564,8 +1534,8 @@
             XLSX.writeFile(wb, `waste_volume_report_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
-        // --- ส่วนการออกใบแจ้งหนี้แบบกลุ่ม (Batch สำหรับครัวเรือน) ---
-        async function generateBatchHouseholdInvoices() {
+        // --- ฟังก์ชันสร้างใบแจ้งหนี้ครัวเรือนแบบกลุ่ม ผ่าน RPC (ปลอดภัย ป้องกันแอบแก้ตัวเลขผ่าน Console) ---
+        async function generateSecureBatchHouseholdInvoices() {
             const village = document.getElementById('batch-village').value;
             const startM = parseInt(document.getElementById('batch-start-month').value);
             const startY = parseInt(document.getElementById('batch-start-year').value);
@@ -1576,9 +1546,7 @@
             const endVal = (endY * 12) + endM;
             if (startVal > endVal) return alert('ช่วงเดือนเริ่มต้นต้องไม่มากกว่าเดือนสิ้นสุด');
 
-            const totalMonths = (endVal - startVal) + 1;
-
-            let query = supabaseClient.schema('second_schema').from('households').select('*').eq('customer_type', 'household').or('is_active.is.null,is_active.eq.true');
+            let query = supabaseClient.schema('second_schema').from('households').select('id').eq('customer_type', 'household').or('is_active.is.null,is_active.eq.true');
             if (village !== 'all') query = query.eq('village_no', village);
 
             const { data: households } = await query;
@@ -1586,30 +1554,21 @@
 
             let countCreated = 0;
             for (let h of households) {
-                const monthlyRate = (h.bin_count || 1) * 15;
-                const totalAmount = monthlyRate * totalMonths;
-                const invoiceNo = 'INV-H-' + Math.floor(100000 + Math.random() * 900000);
-
-                await supabaseClient.schema('second_schema').from('invoices_history').insert([{
-                    household_id: h.id,
-                    invoice_no: invoiceNo,
-                    start_month: startM,
-                    start_year: startY,
-                    end_month: endM,
-                    end_year: endY,
-                    total_months: totalMonths,
-                    total_amount: totalAmount,
-                    status: 'unpaid'
-                }]);
-                countCreated++;
+                const { error } = await supabaseClient.rpc('create_secure_household_invoice', {
+                    p_household_id: h.id,
+                    p_start_month: startM,
+                    p_start_year: startY,
+                    p_end_month: endM,
+                    p_end_year: endY
+                });
+                if (!error) countCreated++;
             }
 
-            alert(`สร้างใบแจ้งหนี้สำหรับ "ครัวเรือน" (ที่เปิดบริการ) สำเร็จทั้งหมด ${countCreated} ฉบับ!`);
+            alert(`สร้างใบแจ้งหนี้สำหรับ "ครัวเรือน" สำเร็จทั้งหมด ${countCreated} ฉบับ!`);
             loadInvoiceHistory();
             loadDashboard();
         }
 
-        // --- ออกใบแจ้งหนี้กิจการ (รายเดี่ยว) ---
         async function generateBusinessInvoice() {
             const household_id = document.getElementById('invoice-business-id').value;
             const startM = parseInt(document.getElementById('biz-start-month').value);
@@ -1619,7 +1578,6 @@
 
             if (!household_id) return alert('กรุณาเลือกกิจการ');
 
-            const { data: hData } = await supabaseClient.schema('second_schema').from('households').select('*').eq('id', household_id).single();
             const { data: records } = await supabaseClient.schema('second_schema').from('monthly_records').select('*').eq('household_id', household_id);
 
             let totalAmount = 0;
@@ -1657,7 +1615,6 @@
             renderInvoiceTable(allInvoiceHistory);
         }
 
-        // ป้องกัน XSS ในตารางประวัติใบแจ้งหนี้
         function renderInvoiceTable(data) {
             const tbody = document.getElementById('invoice-history-tbody');
             tbody.innerHTML = '';
@@ -1802,7 +1759,6 @@
             }
         }
 
-        // --- รับชำระเงิน ---
         function openPaymentModal(id, invNo, owner, fee) {
             document.getElementById('modal-invoice-id').value = id;
             document.getElementById('modal-inv-no').textContent = invNo;
@@ -1829,7 +1785,6 @@
             loadDashboard();
         }
 
-        // --- หน้ารายงานการจัดเก็บเงินและติดตามการชำระ ---
         async function loadPaymentReport() {
             const month = parseInt(document.getElementById('payment-filter-month').value);
             const year_th = parseInt(document.getElementById('payment-filter-year').value);
